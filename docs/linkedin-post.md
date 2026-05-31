@@ -59,6 +59,10 @@ Repo:
 
 https://github.com/razaumair2203-ux/adversarial-reviewer-lite
 
+Suggested image attachment:
+
+docs/assets/audit-report-preview.jpg
+
 If you are experimenting with Claude Code, Codex, or agentic coding workflows, I would love feedback.
 
 What would make an AI-generated code change feel trustworthy enough for you to ship?

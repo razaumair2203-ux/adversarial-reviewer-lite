@@ -58,3 +58,8 @@ Outline:
 ## LinkedIn
 
 Use [linkedin-post.md](linkedin-post.md) as the first LinkedIn launch draft. It is written for non-specialist readers who understand the pain of trusting AI-generated work but do not want a deeply technical post.
+
+Recommended LinkedIn images:
+
+- [assets/audit-report-preview.jpg](assets/audit-report-preview.jpg) for the main launch post.
+- [assets/audit-report-anatomy.jpg](assets/audit-report-anatomy.jpg) for a follow-up post about the audit report format.

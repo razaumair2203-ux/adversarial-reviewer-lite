@@ -88,7 +88,9 @@ adversarial-reviewer-lite/
   snippets/claude-md-reminder.md
   snippets/post-commit-reminder.sample
   docs/assets/audit-report-preview.svg
+  docs/assets/audit-report-preview.jpg
   docs/assets/audit-report-anatomy.svg
+  docs/assets/audit-report-anatomy.jpg
   docs/windows-sandbox.md
   docs/how-to-use.md
   docs/no-codex-yet.md
@@ -107,7 +109,9 @@ adversarial-reviewer-lite/
 - `scripts/` installs the skill folder into your Claude Code skills directory.
 - `snippets/` contains optional reminder snippets. Nothing is installed automatically.
 - `docs/assets/audit-report-preview.svg` is the README hero image for the audit workflow.
+- `docs/assets/audit-report-preview.jpg` is the LinkedIn-friendly version of the hero image.
 - `docs/assets/audit-report-anatomy.svg` maps the HTML report sections for new users.
+- `docs/assets/audit-report-anatomy.jpg` is the LinkedIn-friendly version of the report anatomy image.
 - `docs/windows-sandbox.md` explains why Windows often needs different sandbox handling.
 - `docs/how-to-use.md` explains cloning, installing, invoking, and when to prefer the skill over a manual second-agent review.
 - `docs/no-codex-yet.md` gives a manual trial path for users who have not installed Codex CLI yet.

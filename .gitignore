@@ -1,0 +1,10 @@
+﻿node_modules/
+.DS_Store
+*.log
+
+# Local reports generated while trying the skill.
+audits/
+*.local.html
+
+# Temporary scratch output.
+tmp/

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Adversarial Reviewer Lite workflow preview</title>
+  <desc id="desc">A visual preview showing Claude Code as builder, Codex as independent reviewer, and the user sign-off gate before code changes.</desc>
+  <defs>
+    <linearGradient id="hero-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="0.55" stop-color="#edf8ff"/>
+      <stop offset="1" stop-color="#fff7ed"/>
+    </linearGradient>
+    <linearGradient id="card-top" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0f172a" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="720" fill="url(#hero-bg)"/>
+  <circle cx="1080" cy="90" r="170" fill="#bae6fd" opacity="0.52"/>
+  <circle cx="90" cy="655" r="210" fill="#fed7aa" opacity="0.38"/>
+  <path d="M95 96 C190 42 335 49 420 104 C505 159 631 152 726 92 C850 14 1031 29 1117 122" fill="none" stroke="#bfdbfe" stroke-width="18" stroke-linecap="round" opacity="0.42"/>
+
+  <g transform="translate(74 76)">
+    <text x="0" y="0" fill="#0f172a" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="800">Audit before you trust AI-written code</text>
+    <text x="0" y="36" fill="#475569" font-family="Segoe UI, Arial, sans-serif" font-size="19">Claude Code builds. Codex reviews independently. You approve before fixes touch the repo.</text>
+  </g>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="68" y="174" width="392" height="376" rx="30" fill="#ffffff"/>
+    <rect x="96" y="211" width="166" height="54" rx="18" fill="#dbeafe"/>
+    <text x="126" y="245" fill="#1e3a8a" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">1. Builder</text>
+    <text x="96" y="304" fill="#0f172a" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="800">Claude Code</text>
+    <text x="96" y="338" fill="#475569" font-family="Segoe UI, Arial, sans-serif" font-size="17">Creates or plans the change.</text>
+    <text x="96" y="366" fill="#475569" font-family="Segoe UI, Arial, sans-serif" font-size="17">Collects focused scope, tests,</text>
+    <text x="96" y="394" fill="#475569" font-family="Segoe UI, Arial, sans-serif" font-size="17">edge cases, and constraints.</text>
+    <rect x="96" y="438" width="286" height="48" rx="16" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="121" y="469" fill="#334155" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">No repo changes during audit</text>
+  </g>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="404" y="262" width="392" height="348" rx="30" fill="#ffffff"/>
+    <rect x="432" y="299" width="178" height="54" rx="18" fill="#ffedd5"/>
+    <text x="462" y="333" fill="#9a3412" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800">2. Reviewer</text>
+    <text x="432" y="392" fill="#0f172a" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="800">Codex CLI</text>
+    <text x="432" y="426" fill="#475569" font-family="Segoe UI, Arial, sans-serif" font-size="17">Checks for hallucinated APIs,</text>
+    <text x="432" y="454" fill="#475569" font-family="Segoe UI, Arial, sans-serif" font-size="17">missing tests, scope creep,</text>
+    <text x="432" y="482" fill="#475569" font-family="Segoe UI, Arial, sans-serif" font-size="17">and unsafe assumptions.</text>
+    <rect x="432" y="526" width="292" height="48" rx="16" fill="#fff7ed" stroke="#fdba74"/>
+    <text x="457" y="557" fill="#9a3412" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Findings are verified, not obeyed</text>
+  </g>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="740" y="156" width="392" height="420" rx="30" fill="#ffffff"/>
+    <rect x="740" y="156" width="392" height="84" rx="30" fill="url(#card-top)"/>
+    <text x="775" y="207" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="25" font-weight="800">Audit report</text>
+    <rect x="973" y="178" width="104" height="34" rx="17" fill="#fed7aa"/>
+    <text x="996" y="201" fill="#7c2d12" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="800">REVISE</text>
+
+    <rect x="775" y="270" width="322" height="64" rx="18" fill="#f8fafc" stroke="#cbd5e1"/>
+    <circle cx="805" cy="302" r="12" fill="#ef4444"/>
+    <text x="832" y="295" fill="#0f172a" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">High-risk finding</text>
+    <text x="832" y="319" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="14">Data loss path needs verification</text>
+
+    <rect x="775" y="354" width="322" height="64" rx="18" fill="#f8fafc" stroke="#cbd5e1"/>
+    <circle cx="805" cy="386" r="12" fill="#f59e0b"/>
+    <text x="832" y="379" fill="#0f172a" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">Builder decision</text>
+    <text x="832" y="403" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="14">Accept, reject, re-scope, or defer</text>
+
+    <rect x="775" y="438" width="322" height="64" rx="18" fill="#f8fafc" stroke="#cbd5e1"/>
+    <circle cx="805" cy="470" r="12" fill="#22c55e"/>
+    <text x="832" y="463" fill="#0f172a" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="800">Verification evidence</text>
+    <text x="832" y="487" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="14">Test specs and commands stay visible</text>
+  </g>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="152" y="596" width="896" height="66" rx="22" fill="#0f172a"/>
+    <text x="190" y="637" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="800">User gate:</text>
+    <text x="294" y="637" fill="#dbeafe" font-family="Segoe UI, Arial, sans-serif" font-size="20">report first, HTML optional, fixes only after explicit sign-off</text>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+echo ""
+echo "Adversarial Reviewer Lite reminder:"
+echo "Before trusting AI-generated changes, consider running:"
+echo "  /adversarial-reviewer-lite audit"
+echo ""

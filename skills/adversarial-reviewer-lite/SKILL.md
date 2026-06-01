@@ -128,20 +128,9 @@ command -v cat >/dev/null 2>&1 || MISSING_ADVREVIEW_PREREQS="${MISSING_ADVREVIEW
 
 command -v sort >/dev/null 2>&1 || MISSING_ADVREVIEW_PREREQS="${MISSING_ADVREVIEW_PREREQS}
 - sort: required for dirty-file snapshots. Use Git Bash, WSL, or GNU coreutils."
-
-if [ -n "${MISSING_ADVREVIEW_PREREQS}" ]; then
-  printf '%s\n' "Adversarial Reviewer Lite setup needed. I cannot start the audit yet because these prerequisites are missing:"
-  printf '%s\n' "${MISSING_ADVREVIEW_PREREQS}"
-  printf '%s\n' ""
-  printf '%s\n' "Install the missing tools, restart/reopen the Claude Code shell if PATH changed, then re-run:"
-  printf '%s\n' "/adversarial-reviewer-lite audit"
-  printf '%s\n' ""
-  printf '%s\n' "Setup help: docs/how-to-use.md and docs/troubleshooting.md in the adversarial-reviewer-lite repo."
-  exit 1
-fi
 ```
 
-Choose a hash command:
+Also check for a SHA-256 tool and fold it into the same missing list:
 
 ```bash
 if command -v sha256sum >/dev/null 2>&1; then
@@ -149,29 +138,157 @@ if command -v sha256sum >/dev/null 2>&1; then
 elif command -v shasum >/dev/null 2>&1; then
   HASH_CMD="shasum -a 256"
 else
-  echo "Adversarial Reviewer Lite setup needed. A SHA-256 tool is required for dirty-file mutation checks. Install coreutils for sha256sum or Perl shasum, restart the shell if PATH changed, then re-run /adversarial-reviewer-lite audit. See docs/troubleshooting.md."
+  MISSING_ADVREVIEW_PREREQS="${MISSING_ADVREVIEW_PREREQS}
+- sha256sum or shasum: required for dirty-file mutation checks."
+  HASH_CMD=""
+fi
+```
+
+If `MISSING_ADVREVIEW_PREREQS` is non-empty, detect the platform before offering to install:
+
+```bash
+INSTALL_PLATFORM="linux"
+case "$(uname -s 2>/dev/null)" in
+  Darwin)               INSTALL_PLATFORM="macos" ;;
+  MINGW*|MSYS*|CYGWIN*) INSTALL_PLATFORM="windows-gitbash" ;;
+  Linux)
+    if grep -qi microsoft /proc/version 2>/dev/null; then
+      INSTALL_PLATFORM="wsl"
+    else
+      INSTALL_PLATFORM="linux"
+    fi
+    ;;
+esac
+```
+
+Show the user the complete missing list in `OPERATOR_LANGUAGE` and ask once:
+
+```text
+Adversarial Reviewer Lite setup needed. The following prerequisites are missing:
+
+<list from MISSING_ADVREVIEW_PREREQS>
+
+Would you like me to install all missing prerequisites now? (yes / no)
+```
+
+If the user says no, stop with the missing list and manual install guidance.
+
+If the user says yes, install each missing item using the platform-appropriate commands below. Show each command to the user before running it. Never install silently.
+
+**git:**
+- `windows-gitbash`: `winget install --id Git.Git -e --source winget` if `winget` is available; otherwise display `https://git-scm.com/download/win` and stop.
+- `macos`: `brew install git` if `brew` is available; otherwise `xcode-select --install`.
+- `linux` / `wsl`: `sudo apt-get install -y git` if `apt-get` is available; otherwise `sudo dnf install -y git` if `dnf` is available; otherwise display manual guidance and stop.
+
+**codex:**
+Check for `npm` first:
+- If `npm` is available: run `npm install -g @openai/codex`.
+- If `npm` is not available: inform the user that Node.js is required, display `https://nodejs.org`, and stop. Do not install Node.js automatically.
+
+After the codex binary is installed, do not continue automatically. Codex requires browser-based authentication that cannot be automated. Prompt the user in `OPERATOR_LANGUAGE`:
+
+```text
+Codex CLI has been installed. Before I can continue, Codex needs to be authenticated.
+
+Please run this command in your terminal:
+
+  codex login
+
+This will open a browser window to complete authentication. Let me know when you have finished logging in.
+```
+
+Wait for the user to confirm they have completed `codex login` before proceeding.
+
+**timeout, grep, tail, cat, sort:**
+- `windows-gitbash`: these ship with Git for Windows. If missing, the active shell is not Git Bash. Advise the user to reopen Claude Code in Git Bash. Do not attempt to install individual POSIX tools on Windows.
+- `macos`: `brew install coreutils` if `brew` is available; otherwise display manual guidance.
+- `linux` / `wsl`: `sudo apt-get install -y coreutils` if `apt-get` is available; otherwise `sudo dnf install -y coreutils` if `dnf` is available.
+
+**sha256sum / shasum:**
+- `windows-gitbash`: ships with Git for Windows. If missing, advise reopening in Git Bash.
+- `macos`: `brew install coreutils` if `brew` is available.
+- `linux` / `wsl`: `sudo apt-get install -y coreutils` if `apt-get` is available; otherwise `sudo dnf install -y coreutils`.
+
+After all installs, re-run the full prerequisite check:
+
+```bash
+MISSING_AFTER_INSTALL=""
+
+command -v git     >/dev/null 2>&1 || MISSING_AFTER_INSTALL="${MISSING_AFTER_INSTALL}
+- git"
+command -v codex   >/dev/null 2>&1 || MISSING_AFTER_INSTALL="${MISSING_AFTER_INSTALL}
+- codex"
+command -v timeout >/dev/null 2>&1 || MISSING_AFTER_INSTALL="${MISSING_AFTER_INSTALL}
+- timeout"
+command -v grep    >/dev/null 2>&1 || MISSING_AFTER_INSTALL="${MISSING_AFTER_INSTALL}
+- grep"
+command -v tail    >/dev/null 2>&1 || MISSING_AFTER_INSTALL="${MISSING_AFTER_INSTALL}
+- tail"
+command -v cat     >/dev/null 2>&1 || MISSING_AFTER_INSTALL="${MISSING_AFTER_INSTALL}
+- cat"
+command -v sort    >/dev/null 2>&1 || MISSING_AFTER_INSTALL="${MISSING_AFTER_INSTALL}
+- sort"
+
+if command -v sha256sum >/dev/null 2>&1; then
+  HASH_CMD="sha256sum"
+elif command -v shasum >/dev/null 2>&1; then
+  HASH_CMD="shasum -a 256"
+else
+  MISSING_AFTER_INSTALL="${MISSING_AFTER_INSTALL}
+- sha256sum or shasum"
+fi
+
+if [ -n "${MISSING_AFTER_INSTALL}" ]; then
+  printf '%s\n' "Some prerequisites could not be installed:"
+  printf '%s\n' "${MISSING_AFTER_INSTALL}"
+  printf '%s\n' "Fix the remaining items manually, restart Claude Code if PATH changed, then re-run /adversarial-reviewer-lite audit."
   exit 1
 fi
 ```
 
+If all checks pass, continue.
+
 Run a Codex health check when available:
 
 ```bash
+CODEX_DOCTOR_FAILED=0
 if codex doctor --help >/dev/null 2>&1; then
-  if timeout 15 codex doctor --summary >/dev/null 2>&1; then
-    true
-  else
-    echo "Adversarial Reviewer Lite setup needed. Codex CLI health check failed. Run codex doctor --summary, fix auth/config/runtime issues, then re-run /adversarial-reviewer-lite audit. See docs/troubleshooting.md."
-    exit 1
+  if ! timeout 15 codex doctor --summary >/dev/null 2>&1; then
+    CODEX_DOCTOR_FAILED=1
   fi
 else
   echo "Codex doctor is not available in this Codex CLI version; continuing to model preflight."
 fi
 ```
 
+If `CODEX_DOCTOR_FAILED` is `1`, Codex is installed but the health check failed. This almost always means Codex is not authenticated. Prompt the user in `OPERATOR_LANGUAGE`:
+
+```text
+Codex CLI is installed but the health check failed. This usually means Codex is not authenticated yet.
+
+Please run this command in your terminal:
+
+  codex login
+
+This will open a browser window to complete authentication. Let me know when you have finished logging in.
+```
+
+Wait for the user to confirm, then re-run the check:
+
+```bash
+if [ "${CODEX_DOCTOR_FAILED}" = "1" ]; then
+  if codex doctor --help >/dev/null 2>&1; then
+    if ! timeout 15 codex doctor --summary >/dev/null 2>&1; then
+      echo "Codex health check still failing. Run codex doctor --summary in your terminal to see the full error, fix auth or config issues, then re-run /adversarial-reviewer-lite audit. See docs/troubleshooting.md."
+      exit 1
+    fi
+  fi
+fi
+```
+
 If `codex doctor` is not available in an older Codex CLI, skip this health check and rely on the model preflight in Step 6.
 
-When a prerequisite is missing, do not dispatch the runner, do not send repo context to Codex, and do not attempt installation silently. Present the setup-needed message in `OPERATOR_LANGUAGE`. If the missing prerequisite can be installed safely from the shell, ask for explicit user approval before running an install command. Otherwise, give manual install steps and stop.
+When prerequisites are missing, collect all missing items in a single pass before prompting. Never dispatch the runner, never send repo context to Codex, and never install silently. Present the full missing list in `OPERATOR_LANGUAGE`, ask once whether to install all of them, and only proceed after explicit user approval. After installing, re-verify all prerequisites before continuing. For codex specifically: if the binary is freshly installed, prompt the user to run `codex login` interactively and wait for confirmation before re-checking. If the codex health check fails on an already-installed binary, prompt for `codex login` and re-check before stopping. If any item cannot be installed automatically, explain why and give manual steps.
 
 Capture `REPO_ROOT`:
 

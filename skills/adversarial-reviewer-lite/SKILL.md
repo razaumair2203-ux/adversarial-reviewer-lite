@@ -298,14 +298,25 @@ git rev-parse --show-toplevel
 
 If not inside a Git worktree, stop. Adversarial Reviewer Lite needs Git snapshots for mutation detection.
 
-Detect Windows in two ways:
+Detect the platform:
 
-- `uname -o` returns `Msys`, `Cygwin`, or `unknown`;
-- `REPO_ROOT` starts with a drive letter such as `C:\` or `E:/`.
+```bash
+PLATFORM="unix"
+case "$(uname -o 2>/dev/null)" in
+  Msys|Cygwin|unknown) PLATFORM="windows" ;;
+esac
+# Drive-letter repo root also means Windows
+case "${REPO_ROOT}" in
+  [A-Za-z]:*) PLATFORM="windows" ;;
+esac
+# WSL detection — runs on a real Linux kernel but hosted on Windows
+if [ "${PLATFORM}" = "unix" ] && grep -qi microsoft /proc/version 2>/dev/null; then
+  PLATFORM="wsl"
+fi
+```
 
-On Windows:
+On Windows (`PLATFORM=windows`):
 
-- set `PLATFORM=windows`;
 - if the user did not pass `sandbox:*`, set `REVIEWER_SANDBOX=danger-full-access`;
 - emit:
 
@@ -313,7 +324,16 @@ On Windows:
 Windows detected. Adversarial Reviewer Lite set reviewer sandbox to danger-full-access because bwrap is usually unavailable on Windows. The reviewer is instructed not to edit files, and Adversarial Reviewer Lite will compare Git status plus dirty-file hashes before any fixes are applied. Use sandbox:inherit only if your Codex CLI config supports a safer Windows-native mode.
 ```
 
-On Unix/macOS, keep `REVIEWER_SANDBOX=workspace-write` unless overridden.
+On WSL (`PLATFORM=wsl`):
+
+- keep `REVIEWER_SANDBOX=workspace-write` unless overridden — WSL2 has a real Linux kernel where `bwrap` works;
+- emit:
+
+```text
+WSL detected. Keeping sandbox at workspace-write because bwrap should work under WSL2. If sandbox errors occur, you may be on WSL1 where bwrap is unsupported — upgrade to WSL2 (wsl --set-version <distro> 2) or use sandbox:danger-full-access as a workaround.
+```
+
+On Unix/macOS (`PLATFORM=unix`), keep `REVIEWER_SANDBOX=workspace-write` unless overridden.
 
 ## Step 3: Privacy Notice
 
@@ -375,11 +395,18 @@ Use only digits and one hyphen. Do not use spaces, slashes, colons, or user-prov
 
 Choose `TMP_ROOT`, outside the repo and outside any push path:
 
-- Unix/macOS: `/tmp`
-- Windows Git Bash/MSYS, which is the usual Claude Code shell on Windows: `${TMPDIR:-/tmp}/adversarial-reviewer-lite`
-- Windows PowerShell only if your agent host is explicitly running PowerShell: `$env:TEMP\adversarial-reviewer-lite`
+```bash
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+mkdir -p "${TMP_ROOT}"
+```
 
-Create it if needed. All examples below use `${TMP_ROOT}`.
+This single expression works on all platforms:
+- `$TMPDIR` is the standard on Unix/macOS and sometimes set in Git Bash.
+- `$TEMP` is the Windows standard, mapped into Git Bash automatically.
+- `$TMP` is an alternate Windows temp variable.
+- `/tmp` is the universal fallback; Git Bash maps it to the Windows temp directory.
+
+All examples below use `${TMP_ROOT}`.
 
 Capture repo status:
 
@@ -506,6 +533,12 @@ Require output:
 - **Impact:** ...
 - **Recommendation:** ...
 
+# Scorecard
+
+- **Reviewed:** <number> items
+- **Passing:** <number>
+- **Needs revision:** <number> (<breakdown by severity>)
+
 # Verdict
 
 VERDICT: APPROVED
@@ -514,10 +547,10 @@ VERDICT: APPROVED
 or:
 
 ```text
-VERDICT: REVISE
+VERDICT: REVISE — <number> passing, <number> need revision (<severity breakdown>)
 ```
 
-The final line must be exactly one verdict line.
+The final line must be exactly one verdict line starting with `VERDICT: APPROVED` or `VERDICT: REVISE`. When the verdict is `REVISE`, the verdict line must include the scorecard summary so the user sees passing vs. revision counts at a glance without reading the full report. When the verdict is `APPROVED`, the scorecard section is still required above the verdict line.
 
 Append reviewer permissions:
 
@@ -671,30 +704,36 @@ If verdict is `REVISE` and audit mode is active, continue to audit report.
 
 ## Step 12: Audit Mode
 
-For each finding, the builder independently classifies:
+For each finding, the builder uses its domain knowledge to advise the user. Do not present raw technical classifications and expect the user to decide alone. Instead, for each finding:
 
-- `Confirmed`
-- `Likely valid`
-- `Disputed`
-- `Out of scope`
-- `Needs empirical verification`
+1. **Explain what the reviewer found** in plain language tied to the user's specific code and product context.
+2. **Explain why it matters** — what could go wrong in practice, not in theory. Use concrete scenarios relevant to what the user is building.
+3. **State the builder's recommendation** — accept, reject, re-scope, or defer — with a clear reason.
+4. **Show the evidence** — verification performed, code inspected, commands run, or why verification was not possible.
+5. **Ask the user for approval** before moving to the next finding.
 
-Use the verification discipline from Step 13. Do not treat reviewer confidence as evidence.
+The builder classifies each finding internally as:
 
-Before touching code, present a beginner-readable report:
+- `Confirmed` — builder verified the concern is real
+- `Likely valid` — builder believes it is correct but could not fully verify
+- `Disputed` — builder disagrees with the reviewer and explains why
+- `Out of scope` — finding is valid but not relevant to the user's requested change
+- `Needs empirical verification` — cannot be resolved by reasoning alone; needs a test or command
 
-- executive summary;
-- finding table;
-- what is happening;
-- what could go wrong;
-- suggested fix;
-- builder assessment;
-- verification performed;
-- verification still missing;
-- terms explained once;
-- what happens next.
+Use the verification discipline from Step 13. Do not treat reviewer confidence as evidence. Do not performatively agree with the reviewer — push back when findings are wrong or overstated, and explain why in terms the user can follow.
 
-Do not fix anything until the user explicitly approves. Audit mode is a report-and-signoff workflow first, a code-change workflow second.
+Present findings as a readable report, one finding at a time:
+
+- what the reviewer found;
+- why it matters for the user's product;
+- what could go wrong if ignored;
+- builder's recommended action and reasoning;
+- verification performed or still needed;
+- terms explained inline when they are not obvious.
+
+After presenting each finding with the builder's recommendation, ask the user whether they agree before proceeding to the next finding. Collect all user decisions before presenting the final report.
+
+Do not fix anything until the user explicitly approves all finding decisions. Audit mode is a report-and-signoff workflow first, a code-change workflow second.
 
 Before generating an HTML artifact, ask:
 
@@ -710,12 +749,16 @@ Canonical HTML report structure:
 - Keep all CSS inline.
 - Include metadata: repo, mode, reviewer backend, reviewer model, reasoning, sandbox, approval mode, timestamp.
 - Include a top-level status badge: approved, revise, not verified, or failed.
+- Include the scorecard: items reviewed, passing, needs revision with severity breakdown.
 - Include severity badges and decision badges.
 - Include an executive summary.
-- Include one finding card per reviewer finding.
-- Include builder decision for each finding: accepted, rejected, re-scoped, deferred, or needs verification.
-- Include verification evidence or "not yet verified".
-- Include glossary entries for beginner terms used in the report.
+- Include one finding card per reviewer finding. Each card must include:
+  - what the reviewer found (plain language);
+  - why it matters for the user's product (concrete scenario);
+  - builder's recommended action with reasoning;
+  - verification evidence or "not yet verified";
+  - user's decision: accepted, rejected, re-scoped, deferred, or needs verification.
+- Include glossary entries for terms explained during the finding-by-finding walkthrough.
 - Include an update log if fixes were applied after user approval.
 - Do not include secrets, tokens, full private environment dumps, or unrelated repo content.
 

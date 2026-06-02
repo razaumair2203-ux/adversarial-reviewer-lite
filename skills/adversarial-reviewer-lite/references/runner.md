@@ -218,17 +218,18 @@ The review file must:
 
 - exist;
 - be non-empty;
-- contain exactly one final verdict line, either `VERDICT: APPROVED` or `VERDICT: REVISE`;
+- contain exactly one final verdict line starting with `VERDICT: APPROVED` or `VERDICT: REVISE`;
+- when the verdict is `REVISE`, the verdict line should include a scorecard summary (e.g. `VERDICT: REVISE — 8 passing, 2 need revision (1 high, 1 medium)`);
 - contain at least one `[severity: critical|high|medium]` tag when verdict is `REVISE`, unless the body is classified as `degraded_environmental`.
 
 Recommended checks:
 
 ```bash
 if command -v rg >/dev/null 2>&1; then
-  tail -n 5 "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" | rg '^VERDICT: (APPROVED|REVISE)$'
+  tail -n 5 "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" | rg '^VERDICT: (APPROVED|REVISE)'
   rg -n -i '\[severity:\s*(critical|high|medium)\]' "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md"
 else
-  tail -n 5 "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" | grep -E '^VERDICT: (APPROVED|REVISE)$'
+  tail -n 5 "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" | grep -E '^VERDICT: (APPROVED|REVISE)'
   grep -n -i -E '\[severity:[[:space:]]*(critical|high|medium)\]' "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md"
 fi
 ```

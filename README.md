@@ -1,10 +1,12 @@
 ﻿# Adversarial Reviewer Lite
 
-Lightweight, Windows-friendly adversarial code review for early adopters of AI coding agents.
+Lightweight, Windows-friendly adversarial code review for people building products with AI coding agents.
 
-Adversarial Reviewer Lite is a **Claude Code skill** for people learning to work with agentic coding tools without blindly trusting them. Claude Code remains the builder. Codex CLI is called as an independent adversarial reviewer. The skill passes focused code context and test expectations to Codex, shows the reviewer output, forces the builder to validate each observation, and presents a beginner-readable audit report before any fixes are applied.
+Adversarial Reviewer Lite is a **Claude Code skill** for developers who use AI coding tools to build real products and want a systematic safety net before trusting AI-generated changes. Claude Code remains the builder. Codex CLI is called as an independent adversarial reviewer. The skill passes focused code context and test expectations to Codex, shows the reviewer output, helps the builder explain each finding with domain knowledge, and presents a readable audit report before any fixes are applied.
 
-The first release is intentionally narrow: Claude Code builder, Codex reviewer, one-pass audit, Windows-aware defaults, and user sign-off before code changes. That niche is the point. Many new agentic-coding users are on Windows, where Linux-style sandboxing can fail with `bwrap`/bubblewrap errors, and they need a small workflow that reduces hallucination, scope creep, and unverified "looks good" summaries.
+This is not for trivial scripts or first-day experiments with AI coding. It is for the stage where you are building something that matters — an app, an API, a product — and want an independent check before AI-generated code ships. If you are changing auth, data writes, billing, migrations, multi-file refactors, or anything where a hallucinated API or missing edge case would cost real time, this workflow is for you.
+
+The first release is intentionally narrow: Claude Code builder, Codex reviewer, one-pass audit, Windows-aware defaults, and user sign-off before code changes. Many developers building with AI coding tools are on Windows, where Linux-style sandboxing can fail with `bwrap`/bubblewrap errors, and they need a small workflow that reduces hallucination, scope creep, and unverified "looks good" summaries.
 
 ![Audit report preview](docs/assets/audit-report-preview.svg)
 

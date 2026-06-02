@@ -375,6 +375,20 @@ When the audit includes test specifications and test data:
 - keep the test bundle exhaustive for the requested change but focused on the user's scope;
 - warn if test data appears to contain secrets, credentials, or private customer data.
 
+When no test specifications or test data are provided and none can be extracted from conversation context, the builder must guide the user to define test expectations before proceeding. The reviewer produces better findings when it knows what the code is supposed to do. Ask the user:
+
+```text
+No test specifications were provided. A focused audit works best when the reviewer knows what your code should do. Let me help you define test expectations before sending this to review.
+
+For the changes you want audited:
+1. What is the expected behavior? (what should happen when it works)
+2. Are there edge cases or inputs that must be handled? (empty values, large data, concurrent access, etc.)
+3. Are there things that must NOT happen? (data loss, unauthorized access, silent failures, etc.)
+4. Are there specific commands or checks you normally run to validate this kind of change?
+```
+
+Use the user's answers to build a focused test expectation summary. Present the summary back to the user for approval before including it in the reviewer prompt. If the user declines to provide test expectations, proceed with the audit but note in the reviewer prompt that no focused test expectations were available.
+
 When collecting content, avoid ignored files unless the user explicitly asks for them. Warn if the requested scope appears to include secrets, credentials, or private customer data.
 
 ## Step 5: Mutation Snapshot Before Review

@@ -103,7 +103,18 @@ Adversarial Reviewer Lite v1 is audit-first and does not auto-select audit mode.
 
 ## Step 2: Preflight, Platform, And Repo
 
-Before any Git or reviewer work, check local prerequisites:
+Before any Git or reviewer work, verify the shell environment is bash-compatible. This skill uses POSIX commands (`timeout`, `grep`, `tail`, `sort`, `sha256sum`) and bash syntax throughout. If Claude Code's shell is PowerShell or CMD, the entire workflow will fail.
+
+```bash
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "Adversarial Reviewer Lite requires a bash-compatible shell (Git Bash or WSL on Windows). The current shell does not appear to be bash. Please configure Claude Code to use Git Bash or WSL, then re-run /adversarial-reviewer-lite audit."
+  exit 1
+fi
+```
+
+If this check fails, stop. Do not attempt to run any further commands. The user needs to switch Claude Code's terminal to Git Bash or WSL.
+
+Check local prerequisites:
 
 ```bash
 MISSING_ADVREVIEW_PREREQS=""
@@ -321,7 +332,7 @@ On Windows (`PLATFORM=windows`):
 - emit:
 
 ```text
-Windows detected. Adversarial Reviewer Lite set reviewer sandbox to danger-full-access because bwrap is usually unavailable on Windows. The reviewer is instructed not to edit files, and Adversarial Reviewer Lite will compare Git status plus dirty-file hashes before any fixes are applied. Use sandbox:inherit only if your Codex CLI config supports a safer Windows-native mode.
+Windows detected. Adversarial Reviewer Lite set reviewer sandbox to danger-full-access because bwrap is usually unavailable on Windows. The reviewer is instructed not to edit files, and Adversarial Reviewer Lite will compare Git status plus dirty-file hashes before any fixes are applied. For best protection, commit or stash your work before running the audit so mutation detection has a clean baseline. Use sandbox:inherit only if your Codex CLI config supports a safer Windows-native mode.
 ```
 
 On WSL (`PLATFORM=wsl`):

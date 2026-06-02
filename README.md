@@ -53,7 +53,15 @@ bash scripts/install.sh
 Install the skill on Windows PowerShell:
 
 ```powershell
-.\scripts\install.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
+```
+
+If PowerShell scripts are blocked by policy and you cannot change it, copy the skill folder manually:
+
+```powershell
+$dest = "$env:USERPROFILE\.claude\skills\adversarial-reviewer-lite"
+if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+Copy-Item -Recurse "skills\adversarial-reviewer-lite" $dest
 ```
 
 Restart Claude Code if it was already open, then run:
@@ -264,7 +272,7 @@ If the output is mostly sandbox errors, generic advice, or praise, treat it as n
    Or on Windows PowerShell:
 
    ```powershell
-   .\scripts\install.ps1
+   powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
    ```
 
 2. Install Codex CLI and authenticate it.

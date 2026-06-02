@@ -21,7 +21,15 @@ bash scripts/install.sh
 On Windows PowerShell, the same idea is:
 
 ```powershell
-.\scripts\install.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
+```
+
+If PowerShell scripts are blocked by policy, copy the skill folder manually:
+
+```powershell
+$dest = "$env:USERPROFILE\.claude\skills\adversarial-reviewer-lite"
+if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+Copy-Item -Recurse "skills\adversarial-reviewer-lite" $dest
 ```
 
 Claude Code uses the installed folder name as the slash command. If you want the command to be `/adversarial-reviewer-lite audit`, install the folder as:

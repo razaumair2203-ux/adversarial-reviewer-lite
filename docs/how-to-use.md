@@ -61,7 +61,7 @@ sort --version
 sha256sum --version || shasum --version
 ```
 
-On Windows, Git Bash or WSL is recommended because the skill uses Git/POSIX-style commands for temp files, hashing, timeouts, and review validation.
+On Windows, Git Bash or WSL is required for running audits because the skill uses POSIX commands (`timeout`, `grep`, `tail`, `sort`, `sha256sum`) and bash syntax throughout. The skill will stop with an error if the shell is not bash-compatible.
 
 If any prerequisite is missing, the skill should stop before review and show a setup-needed message. It should not send repo context to Codex, dispatch the runner, or install tools silently. Install the missing tools, reopen Claude Code if `PATH` changed, then run `/adversarial-reviewer-lite audit` again.
 

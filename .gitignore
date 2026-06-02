@@ -2,6 +2,9 @@
 .DS_Store
 *.log
 
+# Local Claude Code session settings (permissions, preferences).
+.claude/
+
 # Local reports generated while trying the skill.
 audits/
 *.local.html

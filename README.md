@@ -64,7 +64,7 @@ if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
 Copy-Item -Recurse "skills\adversarial-reviewer-lite" $dest
 ```
 
-Restart Claude Code if it was already open, then run:
+Restart Claude Code if it was already open. On Windows, make sure Claude Code is using Git Bash or WSL as its shell before invoking the audit — the skill requires a bash-compatible shell at runtime.
 
 ```text
 /adversarial-reviewer-lite audit
@@ -296,7 +296,7 @@ If the output is mostly sandbox errors, generic advice, or praise, treat it as n
    sha256sum --version || shasum --version
    ```
 
-   On Windows, Git Bash or WSL is recommended because the skill uses Git/POSIX-style commands for safe temp files, hashing, and validation.
+   On Windows, Git Bash or WSL is required for running audits because the skill uses POSIX commands (`timeout`, `grep`, `tail`, `sort`, `sha256sum`) and bash syntax throughout. The skill will stop with an error if the shell is not bash-compatible.
 
 4. Confirm the skill folder exists.
 

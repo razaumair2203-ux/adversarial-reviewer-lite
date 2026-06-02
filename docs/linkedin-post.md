@@ -1,70 +1,64 @@
 # LinkedIn Launch Post
 
-AI coding agents are getting good enough that many non-technical people are starting to use them for real work.
+AI hallucinates. There is no denying it.
 
-That is exciting. It is also where things get risky.
+You might not notice it during daily usage — quick scripts, small automations, throwaway prototypes. But the moment you try to make AI build something deploy-worthy — a product, an API, something users depend on — you start to notice where it falters.
 
-The problem is not that tools like Claude Code or Codex are "bad." The problem is that coding agents can sound confident while still:
+It invents APIs that do not exist. It expands scope beyond what you asked. It says "tests pass" when the verification was shallow. It misses data-loss risks, auth gaps, and edge cases that would cost you real hours to debug later.
 
-- inventing APIs or package behavior;
-- expanding the task beyond what you asked for;
-- saying tests passed when the verification was thin;
-- missing data-loss, auth, migration, or file-deletion risks;
-- agreeing too quickly with their own plan.
+This hits hardest for people jumping on the vibe coding wave without a traditional software background. You are building real things, but you do not always know which AI-generated claim to trust and which one to verify.
 
-If you are new to agentic coding, the hardest part is knowing when to trust the answer.
+After studying contemporary research and existing solutions, I built **Adversarial Reviewer Lite** — a Claude Code skill that has your code reviewed adversarially by a separate, independent agent before you trust it.
 
-So I built **Adversarial Reviewer Lite**.
+**Why a separate agent? Why not just ask the same AI to review itself?**
 
-It is a lightweight Claude Code skill that lets you build with Claude, then ask Codex to independently review the work before you accept it.
+Research supports this. Huang et al. found that LLMs can struggle to self-correct reasoning without external feedback — and can even degrade correct answers when asked to review themselves (https://arxiv.org/abs/2310.01798). A 2024 critical survey in TACL confirmed that prompted self-correction is unreliable without external signals (https://aclanthology.org/2024.tacl-1.78/). And multi-agent debate research shows that independent model perspectives can measurably reduce hallucinations (https://arxiv.org/abs/2305.14325).
 
-The flow is simple:
+The short version: asking the same model to critique itself often preserves the same blind spots. A different agent brings different priors, different failure modes, and a different perspective.
 
-1. Claude Code builds or plans the change.
-2. You run `/adversarial-reviewer-lite audit`.
-3. Codex reviews the plan/code as an independent reviewer.
-4. Claude shows the raw reviewer output.
-5. Claude validates each finding instead of blindly obeying it.
-6. You get a readable audit report before any code is changed.
-7. Fixes only happen after you sign off.
+**This does not promise magic.** But it adds an impactful guardrail against your coding agent hallucinating out of control.
 
-This is especially focused on Windows users and early adopters of AI coding agents. A lot of agent tooling quietly assumes Linux-style sandboxing. On Windows, Codex sandbox behavior can hit `bwrap`/bubblewrap limitations, so this project documents the tradeoff clearly and adds mutation checks, privacy warnings, approval controls, and report-before-code discipline.
+**How it actually works — and why it is not circular:**
 
-The idea is not "AI reviews AI, therefore it is correct."
+This is a Claude Code skill — a structured contract between two agents. For v1, Claude Code is the builder and Codex CLI is the reviewer and QA.
 
-The idea is better:
+1. The builder builds your code or plan.
+2. The builder helps you define test specifications — what should work, what should not, what edge cases matter.
+3. You invoke `/adversarial-reviewer-lite audit`.
+4. The builder passes the code, plan, and test specification contract to the independent reviewer.
+5. The reviewer (Codex) reviews adversarially. It does not touch any of your files. It passes findings back to the builder.
+6. The builder assesses and validates each finding — it does not blindly obey the reviewer. It pushes back when findings are wrong. Still does not touch any artifact.
+7. The builder presents an easy-to-read HTML report: what the issues are, their impact, and recommended next steps — explained in plain language.
+8. Nothing changes until you sign off.
 
-Use two different agents with different failure modes, then force the builder to verify the reviewer before touching code.
+The builder does not silently invoke the reviewer. It is user-initiated, user-controlled, and user-approved at every step. It is essentially what you are already doing when you ask a second opinion — but more systematic, more efficient, and with less rework.
 
-That matters because same-agent self-review often shares the same assumptions as the original answer. Independent review creates a second failure surface. It can catch hallucinated APIs, weak tests, scope creep, unsafe implementation paths, and overconfident summaries.
+**Specifically tailored for product builders without a deep software background.** After much trial and iteration, we arrived at a workflow that explains findings in context, advises you with reasoning, and lets you make the final call — not a raw code dump that assumes you know what a race condition is.
 
-This will not replace human judgment. It is not a security boundary. It does not prove the code is safe.
+We also had to build Windows workarounds. Many agentic coding tools assume Linux-style sandboxing that quietly fails on Windows. This skill detects your platform, handles sandbox limitations explicitly, and works out of the box on Windows with Git Bash or WSL.
 
-But it gives beginners and solo builders a repeatable safety habit:
+**Install is straightforward:**
 
-**Build with Claude. Before you trust it, make Codex review it.**
+```
+git clone https://github.com/razaumair2203-ux/adversarial-reviewer-lite.git
+cd adversarial-reviewer-lite
+bash scripts/install.sh
+```
 
-The first release is intentionally narrow:
+Then from Claude Code:
 
-- Claude Code as builder;
-- Codex CLI as reviewer;
-- one-pass audit mode;
-- Windows-aware defaults;
-- optional HTML audit report;
-- no automatic code changes before user sign-off.
+```
+/adversarial-reviewer-lite audit
+```
 
-I made it public because I think more people need small, understandable workflows for reducing hallucination and scope creep in AI-assisted coding.
+That is it. Build with Claude. Before you trust the change, audit it.
 
-Repo:
+**Repo:** https://github.com/razaumair2203-ux/adversarial-reviewer-lite
 
-https://github.com/razaumair2203-ux/adversarial-reviewer-lite
+If you are building with Claude Code or working with agentic coding workflows, I would genuinely love your feedback — what works, what is missing, what would make this more useful for your workflow. Open an issue or reach out.
 
 Suggested image attachment:
 
 docs/assets/audit-report-preview.jpg
 
-If you are experimenting with Claude Code, Codex, or agentic coding workflows, I would love feedback.
-
-What would make an AI-generated code change feel trustworthy enough for you to ship?
-
-#ClaudeCode #Codex #AICoding #AgenticAI #CodeReview #AISafety #WindowsDev
+#AIHallucination #VibeCoding #ClaudeCode #Codex #AgenticAI #CodeReview #AISafety #AICodeReview #WindowsDev #LLM #BuildWithAI #ProductDevelopment

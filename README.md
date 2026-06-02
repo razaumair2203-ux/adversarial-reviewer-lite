@@ -1,30 +1,22 @@
 ﻿# Adversarial Reviewer Lite
 
-Lightweight, Windows-friendly adversarial code review for people building products with AI coding agents.
+AI hallucinates. There is no denying it. You might not notice during daily usage, but when you try to build deploy-worthy products with AI coding agents — you start to see where it falters. Invented APIs, expanded scope you never asked for, shallow verification, missed edge cases.
 
-Adversarial Reviewer Lite is a **Claude Code skill** for developers who use AI coding tools to build real products and want a systematic safety net before trusting AI-generated changes. Claude Code remains the builder. Codex CLI is called as an independent adversarial reviewer. The skill passes focused code context and test expectations to Codex, shows the reviewer output, helps the builder explain each finding with domain knowledge, and presents a readable audit report before any fixes are applied.
+**Adversarial Reviewer Lite** is a Claude Code skill that adds an independent adversarial review to your AI coding workflow. Claude Code builds. Codex CLI reviews as a separate, independent agent. The skill passes focused code context and test expectations to Codex, validates each finding with domain knowledge, and presents a readable audit report before any code is touched.
 
-This is not for trivial scripts or first-day experiments with AI coding. It is for the stage where you are building something that matters — an app, an API, a product — and want an independent check before AI-generated code ships. If you are changing auth, data writes, billing, migrations, multi-file refactors, or anything where a hallucinated API or missing edge case would cost real time, this workflow is for you.
+This is for product builders — people using AI to build apps, APIs, and products that matter. If you are changing auth, data writes, billing, migrations, or multi-file refactors, and a hallucinated API or missing edge case would cost real time, this workflow is for you.
 
-The first release is intentionally narrow: Claude Code builder, Codex reviewer, one-pass audit, Windows-aware defaults, and user sign-off before code changes. Many developers building with AI coding tools are on Windows, where Linux-style sandboxing can fail with `bwrap`/bubblewrap errors, and they need a small workflow that reduces hallucination, scope creep, and unverified "looks good" summaries.
+**Why a separate agent instead of self-review?** Research shows that LLMs can struggle to self-correct without external feedback and can even degrade correct answers ([Huang et al., 2023](https://arxiv.org/abs/2310.01798)). Prompted self-correction is unreliable without external signals ([TACL, 2024](https://aclanthology.org/2024.tacl-1.78/)). Independent model perspectives can measurably reduce hallucinations ([Du et al., 2023](https://arxiv.org/abs/2305.14325)). Same-agent review often preserves the same blind spots. A different agent brings different priors and a different failure surface.
+
+**This is not circular.** The builder builds and helps you define test specifications. You invoke the audit. The builder passes the code and specification contract to the reviewer. The reviewer reviews adversarially — it does not touch any files. Findings go back to the builder. The builder assesses and validates each issue — still does not touch any artifact — and presents an easy-to-read HTML report: what the issues are, their impact, and recommended next steps. Nothing changes until you sign off.
+
+The first release is intentionally narrow: Claude Code builder, Codex reviewer, one-pass audit, Windows-aware defaults, and user sign-off before code changes. Many developers building with AI coding tools are on Windows, where Linux-style sandboxing quietly fails. This skill detects your platform, handles sandbox limitations explicitly, and works out of the box.
 
 ![Audit report preview](docs/assets/audit-report-preview.svg)
 
-The preview above shows the workflow promise: a report-before-code audit, not just a raw second-agent opinion.
+The preview above shows the workflow: a report-before-code audit, not just a raw second-agent opinion.
 
-Suggested public repo name:
-
-```text
-adversarial-reviewer-lite
-```
-
-Current skill invocation:
-
-```text
-/adversarial-reviewer-lite audit
-```
-
-If you install the skill folder under another name, Claude Code uses that folder name as the slash command. For example, installing it as `~/.claude/skills/adversarial-reviewer-lite/` gives `/adversarial-reviewer-lite audit`.
+**If you are building with Claude Code, I would love your feedback** — what works, what is missing, what would make this more useful. Open an issue at https://github.com/razaumair2203-ux/adversarial-reviewer-lite/issues or reach out.
 
 Golden rule:
 

@@ -1,7 +1,7 @@
 ﻿---
 name: adversarial-reviewer-lite
 description: Adversarial Reviewer Lite: user-invoked audit workflow for Claude Code users who want Codex CLI to independently review AI-generated code, plans, test expectations, and scope before fixes are applied. Use only when the user explicitly invokes audit.
-user-invocable: true
+user_invocable: true
 disable-model-invocation: true
 argument-hint: "audit [path] [reviewer:<model>] [test-spec:<path>] [test-data:<path>]"
 ---
@@ -735,7 +735,7 @@ For each finding, the builder uses its domain knowledge to advise the user. Do n
 2. **Explain why it matters** — what could go wrong in practice, not in theory. Use concrete scenarios relevant to what the user is building.
 3. **State the builder's recommendation** — accept, reject, re-scope, or defer — with a clear reason.
 4. **Show the evidence** — verification performed, code inspected, commands run, or why verification was not possible.
-5. **Ask the user for approval** before moving to the next finding.
+5. **Record the recommended decision** for user sign-off.
 
 The builder classifies each finding internally as:
 
@@ -756,7 +756,7 @@ Present findings as a readable report, one finding at a time:
 - verification performed or still needed;
 - terms explained inline when they are not obvious.
 
-After presenting each finding with the builder's recommendation, ask the user whether they agree before proceeding to the next finding. Collect all user decisions before presenting the final report.
+After presenting each finding with the builder's recommendation, collect user decisions before presenting the final report. For short audits, asking after each finding is acceptable. For longer audits, present all recommendations first, then offer a batch decision table so the user can accept, reject, re-scope, defer, or mark "needs verification" per finding in one pass. Do not let batching weaken the rule that the user must explicitly sign off before fixes.
 
 Do not fix anything until the user explicitly approves all finding decisions. Audit mode is a report-and-signoff workflow first, a code-change workflow second.
 
@@ -770,7 +770,7 @@ If yes, create a self-contained HTML report before any code changes. If no, keep
 
 Canonical HTML report structure:
 
-- Use `examples/sample-audit-report.html` as the minimal canonical template.
+- Use `references/sample-audit-report.html` as the installed canonical template. In the source repository, `examples/sample-audit-report.html` is the public preview copy.
 - Keep all CSS inline.
 - Include metadata: repo, mode, reviewer backend, reviewer model, reasoning, sandbox, approval mode, timestamp.
 - Include a top-level status badge: approved, revise, not verified, or failed.
@@ -909,4 +909,3 @@ On launch failure, infrastructure failure, or mutation-detected abort, leave tem
 - Windows defaults to `danger-full-access` only because `bwrap` usually fails there.
 - Do not push, commit, or publish as part of this skill.
 - Multi-model jury is roadmap only in v1.
-

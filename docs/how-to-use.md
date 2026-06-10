@@ -192,8 +192,10 @@ For more symptoms and fixes, see [troubleshooting.md](troubleshooting.md).
 The HTML report is optional and consent-gated. The canonical minimal format is:
 
 ```text
-examples/sample-audit-report.html
+skills/adversarial-reviewer-lite/references/sample-audit-report.html
 ```
+
+The source repository also keeps a public preview copy at `examples/sample-audit-report.html`.
 
 For a quick visual map of the report sections, see:
 

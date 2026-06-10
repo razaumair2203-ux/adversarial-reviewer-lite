@@ -87,6 +87,7 @@ adversarial-reviewer-lite/
   scripts/install.ps1
   skills/adversarial-reviewer-lite/SKILL.md
   skills/adversarial-reviewer-lite/references/runner.md
+  skills/adversarial-reviewer-lite/references/sample-audit-report.html
   snippets/claude-md-reminder.md
   snippets/post-commit-reminder.sample
   docs/assets/audit-report-preview.svg
@@ -108,6 +109,7 @@ adversarial-reviewer-lite/
 
 - `skills/adversarial-reviewer-lite/SKILL.md` is the main Claude Code skill. It defines invocation options, safety checks, the audit workflow, evaluation discipline, and terminal summaries.
 - `skills/adversarial-reviewer-lite/references/runner.md` is the Codex-specific reviewer backend contract. It launches Codex CLI, validates output, classifies review quality, and returns JSON to the main skill.
+- `skills/adversarial-reviewer-lite/references/sample-audit-report.html` is the installed canonical HTML report template.
 - `scripts/` installs the skill folder into your Claude Code skills directory.
 - `snippets/` contains optional reminder snippets. Nothing is installed automatically.
 - `docs/assets/audit-report-preview.svg` is the README hero image for the audit workflow.
@@ -389,7 +391,7 @@ This is the main difference between a useful review workflow and a dangerous "AI
 
 ## Windows Notes
 
-Codex sandboxing often relies on `bwrap`/bubblewrap. That works on many Linux setups and fails on most Windows setups. Adversarial Reviewer Lite detects Windows and uses `danger-full-access` by default unless you explicitly override it. This is a practical workaround for the Windows sandbox limitation, not a claim that full access is safer.
+Adversarial Reviewer Lite supports Windows through Git Bash or WSL, not through a raw PowerShell/CMD runtime. Codex sandboxing often relies on `bwrap`/bubblewrap. That works on many Linux setups, can work under WSL2, and fails on most native Windows setups. Adversarial Reviewer Lite detects Windows-style paths and uses `danger-full-access` by default unless you explicitly override it. This is a practical workaround for the Windows sandbox limitation, not a claim that full access is safer.
 
 That sounds scary because it is real power. The skill compensates with:
 
@@ -474,7 +476,7 @@ Future versions can generalize to other builders/reviewers. The first release is
 
 ## Audit Reports
 
-Audit mode presents a conversation report and can produce a self-contained HTML report after user consent. The report step happens before any code changes. The canonical minimal template is [examples/sample-audit-report.html](examples/sample-audit-report.html). Reports should include:
+Audit mode presents a conversation report and can produce a self-contained HTML report after user consent. The report step happens before any code changes. Short audits can be approved finding-by-finding; longer audits can use a batch decision table. The installed canonical template is [skills/adversarial-reviewer-lite/references/sample-audit-report.html](skills/adversarial-reviewer-lite/references/sample-audit-report.html), and the public preview copy is [examples/sample-audit-report.html](examples/sample-audit-report.html). Reports should include:
 
 ![Audit report anatomy](docs/assets/audit-report-anatomy.svg)
 

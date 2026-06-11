@@ -48,6 +48,47 @@ Convenience aliases:
 - Bare `audit` sets audit mode.
 - If `audit` is absent, stop and ask the user to invoke `/adversarial-reviewer-lite audit ...`.
 
+## Claude Code Runtime Notes
+
+This skill runs inside Claude Code, where each `Bash` tool call is an isolated `bash -c` invocation. This has practical consequences that affect multiple steps:
+
+### Variable Persistence
+
+Shell variables (`REVIEW_ID`, `TMP_ROOT`, `REPO_ROOT`, `HASH_CMD`, `PLATFORM`) do not persist between Bash tool calls. Every Bash call that references these values must either:
+
+- hardcode the resolved value inline (preferred for short values like `REVIEW_ID`), or
+- re-declare the variable at the top of the Bash call.
+
+Do not rely on `export` or sourcing env files — each call is a new process.
+
+### File Writing
+
+When writing large content to files (prompt bodies, plans, reports), **use Claude Code's Write tool instead of bash heredocs**. Heredocs break when the content contains single quotes, backticks, dollar signs, or other shell metacharacters — which markdown prompts always do. The Write tool handles arbitrary content safely.
+
+Reserve bash `>` / `>>` redirection for short, single-line writes and command output capture only.
+
+### Windows Path Resolution
+
+On Windows with Git Bash, `/tmp` is mapped to the Windows temp directory (typically `C:\Users\<user>\AppData\Local\Temp`). This mapping works for bash commands and Git Bash utilities, but other tools (Python, Node.js) resolve `/tmp` differently or not at all.
+
+After resolving `TMP_ROOT` in Step 5, immediately verify the directory is accessible:
+
+```bash
+mkdir -p "${TMP_ROOT}" && [ -d "${TMP_ROOT}" ] && echo "TMP_ROOT OK: ${TMP_ROOT}" || echo "TMP_ROOT FAILED"
+```
+
+When using Claude Code's Write or Read tools to access files in `TMP_ROOT`, use the platform-native absolute path (e.g., `C:\Users\DELL\AppData\Local\Temp\adversarial-reviewer-lite\...`) rather than the Git Bash `/tmp/...` path.
+
+### Hash Verification
+
+After every hash capture step (Steps 5, 7, 9), verify the output file is non-empty:
+
+```bash
+[ -s "${HASH_FILE}" ] && echo "Hash OK: $(wc -l < "${HASH_FILE}") entries" || echo "WARN: Hash file empty — verify variable expansion and file paths"
+```
+
+An empty hash file means variable expansion failed or the source files were not found. Do not proceed with an empty hash baseline — the mutation comparison in Step 9 would produce a false-negative (no diff because both files are empty).
+
 ## Runtime Language
 
 Infer `OPERATOR_LANGUAGE` from recent user messages. Render runtime prose, summaries, warnings, and beginner explanations in that language when practical.
@@ -433,6 +474,18 @@ This single expression works on all platforms:
 
 All examples below use `${TMP_ROOT}`.
 
+**Important**: `REVIEW_ID` and `TMP_ROOT` must be redeclared in every subsequent Bash tool call — see "Claude Code Runtime Notes" above. After creating `TMP_ROOT`, verify it exists and note the platform-native path for use with non-bash tools (Write, Read):
+
+```bash
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+mkdir -p "${TMP_ROOT}"
+# Resolve and display the native path for non-bash tool access
+cd "${TMP_ROOT}" && pwd -W 2>/dev/null || pwd
+cd -
+```
+
+On Git Bash, `pwd -W` returns the Windows-native path (e.g., `C:\Users\DELL\AppData\Local\Temp\adversarial-reviewer-lite`). Save this for Write/Read tool calls. On Unix/WSL, `pwd -W` fails silently and the fallback `pwd` returns the correct path.
+
 Capture repo status:
 
 ```bash
@@ -455,6 +508,14 @@ while read f; do
       printf '%s  %s\n' "$h" "$f"
     done < "${TMP_ROOT}/advreview-dirty-files-${REVIEW_ID}.txt" \
   > "${TMP_ROOT}/advreview-dirty-pre-${REVIEW_ID}.sha"
+```
+
+Verify the hash file was written correctly:
+
+```bash
+[ -s "${TMP_ROOT}/advreview-dirty-pre-${REVIEW_ID}.sha" ] \
+  && echo "Dirty-file hashes OK: $(wc -l < "${TMP_ROOT}/advreview-dirty-pre-${REVIEW_ID}.sha") entries" \
+  || echo "WARN: Dirty-file hash file is empty — check variable expansion"
 ```
 
 This closes the gap where `git status --porcelain` cannot detect content changes to files that were already modified before review.
@@ -600,6 +661,8 @@ Write the complete reviewer prompt body to:
 ${TMP_ROOT}/advreview-body-${REVIEW_ID}.md
 ```
 
+**Use Claude Code's Write tool** to create this file, not a bash heredoc. The prompt body contains markdown with backticks, asterisks, brackets, and other characters that break shell quoting. The Write tool accepts arbitrary content safely. Use the platform-native path resolved in Step 5 (e.g., `C:\Users\...\Temp\adversarial-reviewer-lite\advreview-body-<id>.md` on Windows). Note: the Write tool requires the file to have been Read first if it already exists — for a new file, Write works directly.
+
 This file is the `PROMPT_BODY_PATH` passed to the runner. Do not rely on the runner to infer or rebuild the main prompt body.
 
 Now that the prompt body exists, capture prompt-input hashes before dispatch:
@@ -612,6 +675,16 @@ do
   [ -f "$f" ] && ${HASH_CMD} "$f"
 done > "${TMP_ROOT}/advreview-inputs-pre-${REVIEW_ID}.sha"
 ```
+
+Verify the hash file is non-empty:
+
+```bash
+[ -s "${TMP_ROOT}/advreview-inputs-pre-${REVIEW_ID}.sha" ] \
+  && echo "Input hashes OK: $(wc -l < "${TMP_ROOT}/advreview-inputs-pre-${REVIEW_ID}.sha") entries" \
+  || echo "ERROR: Input hash file is empty — prompt body may not have been written. Stop and investigate."
+```
+
+If the hash file is empty, do not proceed to dispatch. The mutation comparison in Step 9 requires a valid baseline.
 
 This hash step must happen after writing `advreview-body-${REVIEW_ID}.md` and before dispatching the runner. Do not hash prompt inputs in Step 5, because the body file does not exist yet.
 
@@ -654,6 +727,8 @@ The subagent reads `runner.md`, calls Codex CLI, validates the review file, clas
 Always run this step immediately after the runner returns, before consulting the result dispatch table and before any stop/abort path. Even a failed reviewer launch might have mutated files.
 
 Read `RESULT_PATH` only after this mutation snapshot is captured.
+
+**Important**: Redeclare `REVIEW_ID`, `TMP_ROOT`, `REPO_ROOT`, and `HASH_CMD` in this Bash call — they do not persist from earlier calls. See "Claude Code Runtime Notes".
 
 Repeat the status and input hashes:
 

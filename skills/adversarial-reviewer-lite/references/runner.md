@@ -296,6 +296,15 @@ Then return:
 RUNNER_RESULT_AT: <RESULT_PATH>
 ```
 
+## Claude Code Runtime Notes
+
+This runner executes as a Claude Code subagent. Each Bash tool call is an isolated `bash -c` invocation — shell variables do not persist between calls. The runner must:
+
+- Redeclare `REVIEW_ID`, `TMP_ROOT`, `REPO_ROOT`, and all other state variables in every Bash call that references them.
+- Use Claude Code's Write tool (not bash heredocs) for writing multi-line content that contains markdown, backticks, or shell metacharacters.
+- On Windows/Git Bash, use the bash `/tmp/...` path for Bash tool calls and the platform-native path (e.g., `C:\Users\...\Temp\...`) for Write/Read tool calls if needed.
+- Verify hash and output files are non-empty after writing them — empty files indicate variable expansion failure.
+
 ## Runner Rules
 
 - Do not edit project files.

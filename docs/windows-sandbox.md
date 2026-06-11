@@ -37,6 +37,8 @@ The workflow adds guardrails around that power:
 
 These are detection and process controls, not a sandbox.
 
+**Important caveat**: The content-hashing control relies on correct temp file paths. On Windows with Git Bash, `/tmp` maps to the Windows temp directory, but Claude Code's Write and Read tools may not resolve `/tmp` correctly. If hash files are written via Git Bash but read via a native-path tool (or vice versa), the hash baseline can be empty — causing the mutation comparison to silently produce a false-negative (no diff because both pre and post files are empty). The skill's "Claude Code Runtime Notes" section addresses this by requiring native-path resolution via `pwd -W` and non-empty verification after every hash capture. Always check that `.sha` files are non-empty before trusting the mutation check.
+
 ## Safer Alternatives
 
 Try these when your environment supports them:

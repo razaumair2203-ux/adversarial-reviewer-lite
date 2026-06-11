@@ -47,6 +47,7 @@ Adversarial Reviewer Lite does not:
 - guarantee sandboxing on Windows;
 - guarantee the reviewer model supports the requested model name;
 - install missing tools without explicit user approval. The skill can detect and install missing prerequisites, but only after showing the full list and receiving a clear yes from the user. It never installs silently.
+- guarantee hash-based mutation detection when temp file paths or shell variables are misconfigured. On Windows, Git Bash `/tmp` and the platform-native temp path can diverge between tools. If hash files are empty due to variable expansion failure or path mismatch, the pre/post mutation comparison produces a false-negative (no diff detected). The skill mitigates this with non-empty hash verification steps, but the underlying risk exists when Claude Code's Bash tool calls do not correctly redeclare variables. See "Claude Code Runtime Notes" in SKILL.md.
 
 ## Recommended Use
 

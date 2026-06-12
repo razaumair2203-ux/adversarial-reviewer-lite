@@ -95,11 +95,15 @@ An empty hash file means variable expansion failed or the source files were not 
 
 This step runs only when `SELFTEST_MODE` is true. It validates the full tool chain without sending any repo content to the reviewer backend. The selftest runs after Step 1 (settings) and Step 2 (preflight/platform/repo) complete successfully.
 
+Step 2 already validates all required tools (git, codex, timeout, grep, tail, cat, sort, sha256sum/shasum) and offers to install missing ones. The selftest does not repeat tool checks — it focuses on runtime behavior that Step 2 cannot verify: path resolution, hash capture, Write/Read tool interop, and end-to-end Codex dispatch.
+
 If any check fails, the selftest stops at that point, reports the failure clearly, and tells the user exactly what to fix. It does not skip failures or continue past blocking issues.
 
-### ST-1: Shell Environment
+**Cost note**: The selftest makes one Codex API call with a short dummy prompt (no repo content). On metered accounts this has a small cost.
 
-Verify bash is the active shell (already done in Step 2, but confirm explicitly):
+### ST-1: Shell and Platform
+
+Confirm bash and report the environment:
 
 ```bash
 echo "Shell: ${BASH_VERSION:-NOT_BASH}"
@@ -109,60 +113,11 @@ echo "Architecture: $(uname -m 2>/dev/null || echo unknown)"
 
 Report the shell, platform, and architecture. If `BASH_VERSION` is empty, stop: "Self-test failed at ST-1: Not running in bash. Configure Claude Code to use Git Bash (Windows), bash (macOS/Linux), or WSL."
 
-### ST-2: Required Tools
+### ST-2: Temp Directory and Path Resolution
 
-Check each tool individually and report pass/fail:
+This is a two-phase check. Phase 1 uses bash to verify the temp directory works. Phase 2 uses Claude Code's Write and Read tools to verify they can access the same path — this catches the Windows Git Bash vs native path divergence that breaks hash verification in real audits.
 
-```bash
-SELFTEST_PASS=0
-SELFTEST_FAIL=0
-for tool in git codex timeout grep tail cat sort; do
-  if command -v "$tool" >/dev/null 2>&1; then
-    echo "PASS: $tool ($(command -v "$tool"))"
-    SELFTEST_PASS=$((SELFTEST_PASS + 1))
-  else
-    echo "FAIL: $tool — not found on PATH"
-    SELFTEST_FAIL=$((SELFTEST_FAIL + 1))
-  fi
-done
-
-# SHA-256 tool (either sha256sum or shasum)
-if command -v sha256sum >/dev/null 2>&1; then
-  echo "PASS: sha256sum ($(command -v sha256sum))"
-  SELFTEST_PASS=$((SELFTEST_PASS + 1))
-elif command -v shasum >/dev/null 2>&1; then
-  echo "PASS: shasum ($(command -v shasum))"
-  SELFTEST_PASS=$((SELFTEST_PASS + 1))
-else
-  echo "FAIL: sha256sum/shasum — neither found on PATH"
-  SELFTEST_FAIL=$((SELFTEST_FAIL + 1))
-fi
-
-echo ""
-echo "Tools: ${SELFTEST_PASS} pass, ${SELFTEST_FAIL} fail"
-```
-
-If any tool fails, stop: "Self-test failed at ST-2: Missing tools listed above. See docs/troubleshooting.md for install instructions per platform."
-
-### ST-3: Codex Health Check
-
-```bash
-if codex doctor --help >/dev/null 2>&1; then
-  if timeout 15 codex doctor --summary 2>&1; then
-    echo "PASS: codex doctor"
-  else
-    echo "FAIL: codex doctor — health check failed (auth or config issue)"
-  fi
-else
-  echo "SKIP: codex doctor not available in this Codex CLI version"
-fi
-```
-
-If doctor fails, stop: "Self-test failed at ST-3: Codex health check failed. Run `codex login` and retry."
-
-If doctor is not available, warn but continue (older CLI versions lack it).
-
-### ST-4: Temp Directory and Path Resolution
+**Phase 1 — bash write/read:**
 
 ```bash
 TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
@@ -184,11 +139,13 @@ echo "Native temp path: ${NATIVE_TMP}"
 rm -f "${SELFTEST_FILE}"
 ```
 
-After the bash check, verify Claude Code's Write and Read tools can access the same path. Use the Write tool to create `${NATIVE_TMP}/selftest-write-probe.txt` with content `write-tool-ok`, then use the Read tool to verify it. If either fails, stop: "Self-test failed at ST-4: Claude Code's Write/Read tools cannot access the temp directory at the native path. This will cause hash verification failures during real audits."
+**Phase 2 — Write/Read tool interop:**
 
-Clean up: delete both probe files.
+Use Claude Code's Write tool to create a file at the native path (`${NATIVE_TMP}/selftest-write-probe.txt`) with content `write-tool-ok`. Then use the Read tool to read it back and verify the content matches. If either tool fails, stop: "Self-test failed at ST-2: Claude Code's Write/Read tools cannot access the temp directory at the native path. This will cause hash verification failures during real audits."
 
-### ST-5: Hash Tool Verification
+Clean up: delete the probe file via bash using the bash-resolvable path.
+
+### ST-3: Hash Tool Verification
 
 ```bash
 TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
@@ -213,9 +170,9 @@ fi
 rm -f "${TMP_ROOT}/selftest-hash-input.txt" "${HASH_OUT}"
 ```
 
-If hash output is empty, stop: "Self-test failed at ST-5: Hash tool produced empty output. This means mutation detection will silently fail during real audits. Check variable expansion and paths."
+If hash output is empty, stop: "Self-test failed at ST-3: Hash tool produced empty output. This means mutation detection will silently fail during real audits. Check variable expansion and paths."
 
-### ST-6: Git Integration
+### ST-4: Git Integration
 
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
@@ -228,47 +185,84 @@ else
 fi
 ```
 
-If not in a git repo, stop: "Self-test failed at ST-6: Not inside a git repository. Adversarial Reviewer Lite requires git for mutation detection."
+If not in a git repo, stop: "Self-test failed at ST-4: Not inside a git repository. Adversarial Reviewer Lite requires git for mutation detection."
 
-### ST-7: Model Preflight With Fallback
+### ST-5: Codex Health Check
 
-Run the same model fallback loop as Step 6, using the dummy prompt `"Reply with exactly the text MODEL_OK and nothing else"`. This sends no repo content.
+```bash
+if codex doctor --help >/dev/null 2>&1; then
+  if timeout 15 codex doctor --summary 2>&1; then
+    echo "PASS: codex doctor"
+  else
+    echo "FAIL: codex doctor — health check failed (auth or config issue)"
+  fi
+else
+  echo "SKIP: codex doctor not available in this Codex CLI version"
+fi
+```
+
+If doctor fails, stop: "Self-test failed at ST-5: Codex health check failed. Run `codex login` and retry."
+
+If doctor is not available, warn but continue (older CLI versions lack it).
+
+### ST-6: Model + End-to-End Dispatch
+
+This single check validates model access AND end-to-end dispatch in one Codex call. It tries each model in `MODEL_FALLBACK_CHAIN`, sending a dummy review prompt that produces a parseable verdict. No repo content is sent.
+
+The builder must substitute the actual `MODEL_FALLBACK_CHAIN` from Step 1 into the loop below. If the user specified `reviewer:<model>`, that model goes first.
 
 ```bash
 TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
-# Try each model in the fallback chain
+SELFTEST_FOUND_MODEL=""
+
 for MODEL in gpt-5.5 o3 gpt-4.1 gpt-4o; do
   echo "Trying model: ${MODEL}..."
-  timeout 30 codex exec -m "${MODEL}" -s danger-full-access \
-    "Reply with exactly the text MODEL_OK and nothing else" \
-    -o "${TMP_ROOT}/selftest-model-out.txt" \
-    2>"${TMP_ROOT}/selftest-model-err.txt"
+  timeout 60 codex exec -m "${MODEL}" -s danger-full-access \
+    "You are testing a review pipeline. Reply with exactly this text and nothing else:
+# Summary
+Self-test passed.
+# Findings
+None.
+# Scorecard
+- Reviewed: 1 items
+- Passing: 1
+- Needs revision: 0
+# Verdict
+VERDICT: APPROVED" \
+    -o "${TMP_ROOT}/selftest-dispatch-out.md" \
+    2>"${TMP_ROOT}/selftest-dispatch-err.txt"
 
-  if [ -f "${TMP_ROOT}/selftest-model-out.txt" ] && grep -q "MODEL_OK" "${TMP_ROOT}/selftest-model-out.txt" 2>/dev/null; then
-    echo "PASS: model ${MODEL} responded"
-    echo "SELECTED_MODEL=${MODEL}"
-    rm -f "${TMP_ROOT}/selftest-model-out.txt" "${TMP_ROOT}/selftest-model-err.txt"
+  if [ -f "${TMP_ROOT}/selftest-dispatch-out.md" ] && grep -q "VERDICT:" "${TMP_ROOT}/selftest-dispatch-out.md" 2>/dev/null; then
+    echo "PASS: model ${MODEL} — dispatch completed with verdict"
+    SELFTEST_FOUND_MODEL="${MODEL}"
+    tail -3 "${TMP_ROOT}/selftest-dispatch-out.md"
+    rm -f "${TMP_ROOT}/selftest-dispatch-out.md" "${TMP_ROOT}/selftest-dispatch-err.txt"
     break
   else
-    echo "SKIP: model ${MODEL} unavailable"
-    if [ -f "${TMP_ROOT}/selftest-model-err.txt" ]; then
-      tail -3 "${TMP_ROOT}/selftest-model-err.txt"
+    echo "SKIP: model ${MODEL} — unavailable or dispatch failed"
+    if [ -f "${TMP_ROOT}/selftest-dispatch-err.txt" ]; then
+      tail -3 "${TMP_ROOT}/selftest-dispatch-err.txt"
     fi
+    rm -f "${TMP_ROOT}/selftest-dispatch-out.md" "${TMP_ROOT}/selftest-dispatch-err.txt"
   fi
 done
+
+if [ -z "${SELFTEST_FOUND_MODEL}" ]; then
+  echo "FAIL: all models exhausted — no reviewer model produced a valid dispatch"
+fi
 ```
 
-If no model responds, stop: "Self-test failed at ST-7: No reviewer model is available. Tried all models in fallback chain. Check auth (`codex login`), quota, or network connectivity."
+If `SELFTEST_FOUND_MODEL` is empty after the loop, stop: "Self-test failed at ST-6: No reviewer model is available. Tried all models in fallback chain. Check auth (`codex login`), quota, or network connectivity."
 
-If the first model in the chain (or the user-specified model) was unavailable but a fallback worked, report which model will be used.
+If the first model was unavailable but a fallback worked, report which model will be used in audits.
 
-### ST-8: Sandbox Probe (non-blocking)
+### ST-7: Sandbox Probe (non-blocking)
 
 On platforms where `REVIEWER_SANDBOX` is not `danger-full-access`, test `bwrap`:
 
 ```bash
 if command -v bwrap >/dev/null 2>&1; then
-  if bwrap --dev-bind / / --unshare-net /bin/echo ok 2>&1; then
+  if bwrap --dev-bind / / --unshare-net echo ok 2>&1; then
     echo "PASS: bwrap sandbox available"
   else
     echo "WARN: bwrap found but failed — sandbox modes read-only/workspace-write may not work"
@@ -280,46 +274,6 @@ fi
 
 This check is non-blocking. Report the result but do not stop. The audit flow already handles sandbox fallback.
 
-### ST-9: End-to-End Dummy Dispatch
-
-Run a minimal Codex dispatch that exercises the full runner path without repo content. Use the model confirmed in ST-7:
-
-```bash
-TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
-SELECTED_MODEL="<model from ST-7>"
-
-echo "Running dummy dispatch..."
-timeout 60 codex exec -m "${SELECTED_MODEL}" -s danger-full-access \
-  "You are testing a review pipeline. Reply with exactly:
-# Summary
-No issues found in dummy test.
-# Findings
-None.
-# Scorecard
-- Reviewed: 1 items
-- Passing: 1
-- Needs revision: 0
-# Verdict
-VERDICT: APPROVED" \
-  -o "${TMP_ROOT}/selftest-dispatch-out.md" \
-  2>"${TMP_ROOT}/selftest-dispatch-err.txt"
-
-if [ -f "${TMP_ROOT}/selftest-dispatch-out.md" ] && grep -q "VERDICT:" "${TMP_ROOT}/selftest-dispatch-out.md" 2>/dev/null; then
-  echo "PASS: dummy dispatch completed with verdict"
-  tail -3 "${TMP_ROOT}/selftest-dispatch-out.md"
-else
-  echo "FAIL: dummy dispatch did not produce a verdict"
-  if [ -f "${TMP_ROOT}/selftest-dispatch-err.txt" ]; then
-    echo "Stderr:"
-    tail -5 "${TMP_ROOT}/selftest-dispatch-err.txt"
-  fi
-fi
-
-rm -f "${TMP_ROOT}/selftest-dispatch-out.md" "${TMP_ROOT}/selftest-dispatch-err.txt"
-```
-
-If the dummy dispatch fails, stop: "Self-test failed at ST-9: Codex dispatch did not produce expected output. The full audit workflow will likely fail too. Check the stderr output above."
-
 ### Self-Test Report
 
 After all checks complete, present a summary:
@@ -329,15 +283,13 @@ After all checks complete, present a summary:
 
 | # | Check | Result |
 |---|---|---|
-| ST-1 | Shell environment | PASS/FAIL |
-| ST-2 | Required tools | PASS/FAIL (N/N) |
-| ST-3 | Codex health check | PASS/FAIL/SKIP |
-| ST-4 | Temp directory + Write/Read | PASS/FAIL |
-| ST-5 | Hash tool verification | PASS/FAIL |
-| ST-6 | Git integration | PASS/FAIL |
-| ST-7 | Model preflight | PASS (model) / FAIL |
-| ST-8 | Sandbox probe | PASS/WARN/INFO |
-| ST-9 | End-to-end dummy dispatch | PASS/FAIL |
+| ST-1 | Shell and platform | PASS/FAIL |
+| ST-2 | Temp directory + Write/Read tools | PASS/FAIL |
+| ST-3 | Hash tool verification | PASS/FAIL |
+| ST-4 | Git integration | PASS/FAIL |
+| ST-5 | Codex health check | PASS/FAIL/SKIP |
+| ST-6 | Model + end-to-end dispatch | PASS (model) / FAIL |
+| ST-7 | Sandbox probe | PASS/WARN/INFO |
 
 Platform: <platform>
 Shell: bash <version>
@@ -347,7 +299,7 @@ Temp path: <native path>
 Ready for audit: YES / NO — <reason if no>
 ```
 
-If all blocking checks pass (ST-1 through ST-7, ST-9), report "Ready for audit: YES". If any blocking check failed, report "Ready for audit: NO" with the first failing check as the reason.
+If all blocking checks pass (ST-1 through ST-6), report "Ready for audit: YES". If any blocking check failed, report "Ready for audit: NO" with the first failing check as the reason.
 
 Clean up all selftest temp files. Do not proceed to any audit steps. The selftest is complete.
 

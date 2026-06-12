@@ -2,6 +2,7 @@
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
+| Not sure if setup works on this machine | First-time install, new platform, or after upgrades | Run `/adversarial-reviewer-lite selftest` — it validates all prerequisites, paths, model access, and dispatch without sending repo content. |
 | `/adversarial-reviewer-lite audit` is not available | Skill folder is missing or Claude Code has not reloaded skills | Confirm `~/.claude/skills/adversarial-reviewer-lite/SKILL.md` exists, then restart Claude Code. |
 | Skill starts but says Codex is missing | Codex CLI is not installed or not on `PATH` | Run `npm install -g @openai/codex`, then reopen Claude Code and run `codex --version`. |
 | Codex health check fails | Not logged in, bad config, proxy/network issue, or broken Codex install | Run `codex login` and `codex doctor --summary` in the same shell Claude Code uses. |

@@ -3,7 +3,7 @@ name: adversarial-reviewer-lite
 description: Adversarial Reviewer Lite: user-invoked audit workflow for Claude Code users who want Codex CLI to independently review AI-generated code, plans, test expectations, and scope before fixes are applied. Use only when the user explicitly invokes audit.
 user_invocable: true
 disable-model-invocation: true
-argument-hint: "audit [path] [reviewer:<model>] [test-spec:<path>] [test-data:<path>]"
+argument-hint: "audit [path] [reviewer:<model>] [test-spec:<path>] [test-data:<path>] | selftest"
 ---
 
 # Adversarial Reviewer Lite
@@ -24,6 +24,7 @@ Version 1 is intentionally focused: Claude Code as builder, Codex CLI as reviewe
 Recommended v1 user invocation:
 
 - `/adversarial-reviewer-lite audit` - one reviewer pass, builder validates findings, report/HTML option is presented, user signs off before fixes.
+- `/adversarial-reviewer-lite selftest` - validate that all prerequisites, paths, model access, and platform behavior work on this machine. No repo content is sent. Run this first on any new machine.
 
 Advanced scope hints:
 
@@ -46,7 +47,8 @@ Convenience aliases:
 - `model:<model>` means `reviewer:<model>`.
 - Bare `low`, `medium`, `high`, `xhigh` set reasoning.
 - Bare `audit` sets audit mode.
-- If `audit` is absent, stop and ask the user to invoke `/adversarial-reviewer-lite audit ...`.
+- Bare `selftest` sets selftest mode.
+- If neither `audit` nor `selftest` is present, stop and ask the user to invoke `/adversarial-reviewer-lite audit ...` or `/adversarial-reviewer-lite selftest`.
 
 ## Claude Code Runtime Notes
 
@@ -89,6 +91,266 @@ After every hash capture step (Steps 5, 7, 9), verify the output file is non-emp
 
 An empty hash file means variable expansion failed or the source files were not found. Do not proceed with an empty hash baseline — the mutation comparison in Step 9 would produce a false-negative (no diff because both files are empty).
 
+## Step 0: Self-Test Flow
+
+This step runs only when `SELFTEST_MODE` is true. It validates the full tool chain without sending any repo content to the reviewer backend. The selftest runs after Step 1 (settings) and Step 2 (preflight/platform/repo) complete successfully.
+
+If any check fails, the selftest stops at that point, reports the failure clearly, and tells the user exactly what to fix. It does not skip failures or continue past blocking issues.
+
+### ST-1: Shell Environment
+
+Verify bash is the active shell (already done in Step 2, but confirm explicitly):
+
+```bash
+echo "Shell: ${BASH_VERSION:-NOT_BASH}"
+echo "Platform: $(uname -s 2>/dev/null || echo unknown)"
+echo "Architecture: $(uname -m 2>/dev/null || echo unknown)"
+```
+
+Report the shell, platform, and architecture. If `BASH_VERSION` is empty, stop: "Self-test failed at ST-1: Not running in bash. Configure Claude Code to use Git Bash (Windows), bash (macOS/Linux), or WSL."
+
+### ST-2: Required Tools
+
+Check each tool individually and report pass/fail:
+
+```bash
+SELFTEST_PASS=0
+SELFTEST_FAIL=0
+for tool in git codex timeout grep tail cat sort; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    echo "PASS: $tool ($(command -v "$tool"))"
+    SELFTEST_PASS=$((SELFTEST_PASS + 1))
+  else
+    echo "FAIL: $tool — not found on PATH"
+    SELFTEST_FAIL=$((SELFTEST_FAIL + 1))
+  fi
+done
+
+# SHA-256 tool (either sha256sum or shasum)
+if command -v sha256sum >/dev/null 2>&1; then
+  echo "PASS: sha256sum ($(command -v sha256sum))"
+  SELFTEST_PASS=$((SELFTEST_PASS + 1))
+elif command -v shasum >/dev/null 2>&1; then
+  echo "PASS: shasum ($(command -v shasum))"
+  SELFTEST_PASS=$((SELFTEST_PASS + 1))
+else
+  echo "FAIL: sha256sum/shasum — neither found on PATH"
+  SELFTEST_FAIL=$((SELFTEST_FAIL + 1))
+fi
+
+echo ""
+echo "Tools: ${SELFTEST_PASS} pass, ${SELFTEST_FAIL} fail"
+```
+
+If any tool fails, stop: "Self-test failed at ST-2: Missing tools listed above. See docs/troubleshooting.md for install instructions per platform."
+
+### ST-3: Codex Health Check
+
+```bash
+if codex doctor --help >/dev/null 2>&1; then
+  if timeout 15 codex doctor --summary 2>&1; then
+    echo "PASS: codex doctor"
+  else
+    echo "FAIL: codex doctor — health check failed (auth or config issue)"
+  fi
+else
+  echo "SKIP: codex doctor not available in this Codex CLI version"
+fi
+```
+
+If doctor fails, stop: "Self-test failed at ST-3: Codex health check failed. Run `codex login` and retry."
+
+If doctor is not available, warn but continue (older CLI versions lack it).
+
+### ST-4: Temp Directory and Path Resolution
+
+```bash
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+mkdir -p "${TMP_ROOT}"
+
+SELFTEST_FILE="${TMP_ROOT}/selftest-probe.txt"
+echo "selftest-ok" > "${SELFTEST_FILE}"
+
+if [ -f "${SELFTEST_FILE}" ] && [ "$(cat "${SELFTEST_FILE}")" = "selftest-ok" ]; then
+  echo "PASS: temp directory write/read via bash"
+else
+  echo "FAIL: temp directory write/read via bash"
+fi
+
+# Show native path for Write/Read tool verification
+NATIVE_TMP="$(cd "${TMP_ROOT}" && pwd -W 2>/dev/null || pwd)"
+echo "Native temp path: ${NATIVE_TMP}"
+
+rm -f "${SELFTEST_FILE}"
+```
+
+After the bash check, verify Claude Code's Write and Read tools can access the same path. Use the Write tool to create `${NATIVE_TMP}/selftest-write-probe.txt` with content `write-tool-ok`, then use the Read tool to verify it. If either fails, stop: "Self-test failed at ST-4: Claude Code's Write/Read tools cannot access the temp directory at the native path. This will cause hash verification failures during real audits."
+
+Clean up: delete both probe files.
+
+### ST-5: Hash Tool Verification
+
+```bash
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+HASH_CMD=""
+if command -v sha256sum >/dev/null 2>&1; then
+  HASH_CMD="sha256sum"
+elif command -v shasum >/dev/null 2>&1; then
+  HASH_CMD="shasum -a 256"
+fi
+
+echo "hash-test-content" > "${TMP_ROOT}/selftest-hash-input.txt"
+HASH_OUT="${TMP_ROOT}/selftest-hash-output.sha"
+${HASH_CMD} "${TMP_ROOT}/selftest-hash-input.txt" > "${HASH_OUT}"
+
+if [ -s "${HASH_OUT}" ]; then
+  echo "PASS: hash capture non-empty ($(wc -c < "${HASH_OUT}") bytes)"
+  cat "${HASH_OUT}"
+else
+  echo "FAIL: hash output file is empty — variable expansion or path issue"
+fi
+
+rm -f "${TMP_ROOT}/selftest-hash-input.txt" "${HASH_OUT}"
+```
+
+If hash output is empty, stop: "Self-test failed at ST-5: Hash tool produced empty output. This means mutation detection will silently fail during real audits. Check variable expansion and paths."
+
+### ST-6: Git Integration
+
+```bash
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -n "${REPO_ROOT}" ]; then
+  echo "PASS: git repo detected at ${REPO_ROOT}"
+  echo "Branch: $(git -C "${REPO_ROOT}" branch --show-current 2>/dev/null || echo 'detached')"
+  echo "Status lines: $(git -C "${REPO_ROOT}" status --porcelain 2>/dev/null | wc -l)"
+else
+  echo "FAIL: not inside a git repository"
+fi
+```
+
+If not in a git repo, stop: "Self-test failed at ST-6: Not inside a git repository. Adversarial Reviewer Lite requires git for mutation detection."
+
+### ST-7: Model Preflight With Fallback
+
+Run the same model fallback loop as Step 6, using the dummy prompt `"Reply with exactly the text MODEL_OK and nothing else"`. This sends no repo content.
+
+```bash
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+# Try each model in the fallback chain
+for MODEL in gpt-5.5 o3 gpt-4.1 gpt-4o; do
+  echo "Trying model: ${MODEL}..."
+  timeout 30 codex exec -m "${MODEL}" -s danger-full-access \
+    "Reply with exactly the text MODEL_OK and nothing else" \
+    -o "${TMP_ROOT}/selftest-model-out.txt" \
+    2>"${TMP_ROOT}/selftest-model-err.txt"
+
+  if [ -f "${TMP_ROOT}/selftest-model-out.txt" ] && grep -q "MODEL_OK" "${TMP_ROOT}/selftest-model-out.txt" 2>/dev/null; then
+    echo "PASS: model ${MODEL} responded"
+    echo "SELECTED_MODEL=${MODEL}"
+    rm -f "${TMP_ROOT}/selftest-model-out.txt" "${TMP_ROOT}/selftest-model-err.txt"
+    break
+  else
+    echo "SKIP: model ${MODEL} unavailable"
+    if [ -f "${TMP_ROOT}/selftest-model-err.txt" ]; then
+      tail -3 "${TMP_ROOT}/selftest-model-err.txt"
+    fi
+  fi
+done
+```
+
+If no model responds, stop: "Self-test failed at ST-7: No reviewer model is available. Tried all models in fallback chain. Check auth (`codex login`), quota, or network connectivity."
+
+If the first model in the chain (or the user-specified model) was unavailable but a fallback worked, report which model will be used.
+
+### ST-8: Sandbox Probe (non-blocking)
+
+On platforms where `REVIEWER_SANDBOX` is not `danger-full-access`, test `bwrap`:
+
+```bash
+if command -v bwrap >/dev/null 2>&1; then
+  if bwrap --dev-bind / / --unshare-net /bin/echo ok 2>&1; then
+    echo "PASS: bwrap sandbox available"
+  else
+    echo "WARN: bwrap found but failed — sandbox modes read-only/workspace-write may not work"
+  fi
+else
+  echo "INFO: bwrap not available — will use danger-full-access on this platform"
+fi
+```
+
+This check is non-blocking. Report the result but do not stop. The audit flow already handles sandbox fallback.
+
+### ST-9: End-to-End Dummy Dispatch
+
+Run a minimal Codex dispatch that exercises the full runner path without repo content. Use the model confirmed in ST-7:
+
+```bash
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+SELECTED_MODEL="<model from ST-7>"
+
+echo "Running dummy dispatch..."
+timeout 60 codex exec -m "${SELECTED_MODEL}" -s danger-full-access \
+  "You are testing a review pipeline. Reply with exactly:
+# Summary
+No issues found in dummy test.
+# Findings
+None.
+# Scorecard
+- Reviewed: 1 items
+- Passing: 1
+- Needs revision: 0
+# Verdict
+VERDICT: APPROVED" \
+  -o "${TMP_ROOT}/selftest-dispatch-out.md" \
+  2>"${TMP_ROOT}/selftest-dispatch-err.txt"
+
+if [ -f "${TMP_ROOT}/selftest-dispatch-out.md" ] && grep -q "VERDICT:" "${TMP_ROOT}/selftest-dispatch-out.md" 2>/dev/null; then
+  echo "PASS: dummy dispatch completed with verdict"
+  tail -3 "${TMP_ROOT}/selftest-dispatch-out.md"
+else
+  echo "FAIL: dummy dispatch did not produce a verdict"
+  if [ -f "${TMP_ROOT}/selftest-dispatch-err.txt" ]; then
+    echo "Stderr:"
+    tail -5 "${TMP_ROOT}/selftest-dispatch-err.txt"
+  fi
+fi
+
+rm -f "${TMP_ROOT}/selftest-dispatch-out.md" "${TMP_ROOT}/selftest-dispatch-err.txt"
+```
+
+If the dummy dispatch fails, stop: "Self-test failed at ST-9: Codex dispatch did not produce expected output. The full audit workflow will likely fail too. Check the stderr output above."
+
+### Self-Test Report
+
+After all checks complete, present a summary:
+
+```text
+## Adversarial Reviewer Lite — Self-Test Results
+
+| # | Check | Result |
+|---|---|---|
+| ST-1 | Shell environment | PASS/FAIL |
+| ST-2 | Required tools | PASS/FAIL (N/N) |
+| ST-3 | Codex health check | PASS/FAIL/SKIP |
+| ST-4 | Temp directory + Write/Read | PASS/FAIL |
+| ST-5 | Hash tool verification | PASS/FAIL |
+| ST-6 | Git integration | PASS/FAIL |
+| ST-7 | Model preflight | PASS (model) / FAIL |
+| ST-8 | Sandbox probe | PASS/WARN/INFO |
+| ST-9 | End-to-end dummy dispatch | PASS/FAIL |
+
+Platform: <platform>
+Shell: bash <version>
+Reviewer model: <selected model>
+Temp path: <native path>
+
+Ready for audit: YES / NO — <reason if no>
+```
+
+If all blocking checks pass (ST-1 through ST-7, ST-9), report "Ready for audit: YES". If any blocking check failed, report "Ready for audit: NO" with the first failing check as the reason.
+
+Clean up all selftest temp files. Do not proceed to any audit steps. The selftest is complete.
+
 ## Runtime Language
 
 Infer `OPERATOR_LANGUAGE` from recent user messages. Render runtime prose, summaries, warnings, and beginner explanations in that language when practical.
@@ -106,8 +368,9 @@ Keep machine-readable literals in English exactly as written:
 
 Parse user arguments:
 
-- `MODE`: must be `audit` for v1 public use.
+- `MODE`: `audit` or `selftest`. Must be one of these for v1 public use.
 - `AUDIT_MODE`: true only when `audit` is explicitly present.
+- `SELFTEST_MODE`: true only when `selftest` is explicitly present. When true, skip Steps 3-14 and run Step 0 instead.
 - `REVIEW_BACKEND`: default `codex`.
 - `REVIEWER_MODEL`: default `gpt-5.5`.
 - `MODEL_FALLBACK_CHAIN`: ordered list of models to try if `REVIEWER_MODEL` is unavailable. Default: `["gpt-5.5", "o3", "gpt-4.1", "gpt-4o"]`. When the user explicitly sets `reviewer:<model>`, that model is tried first, then the remaining chain in order. When no model is specified, the full default chain is used.
@@ -137,11 +400,15 @@ If `REVIEW_BACKEND` is anything other than `codex`, stop with:
 Adversarial Reviewer Lite v1 only implements backend:codex. Other backends are planned but not available yet.
 ```
 
-If the user did not explicitly invoke `audit`, stop with:
+If the user did not explicitly invoke `audit` or `selftest`, stop with:
 
 ```text
-Adversarial Reviewer Lite v1 is audit-first and does not auto-select audit mode. Please invoke `/adversarial-reviewer-lite audit ...` so the report-before-code sign-off path is explicit.
+Adversarial Reviewer Lite v1 requires an explicit mode. Please invoke:
+- /adversarial-reviewer-lite audit ... — to run a full review
+- /adversarial-reviewer-lite selftest — to validate your setup
 ```
+
+If `SELFTEST_MODE` is true, proceed to Step 2 (preflight), then after Step 2 completes successfully, jump to Step 0 (Self-Test Flow) instead of continuing to Step 3.
 
 ## Step 2: Preflight, Platform, And Repo
 

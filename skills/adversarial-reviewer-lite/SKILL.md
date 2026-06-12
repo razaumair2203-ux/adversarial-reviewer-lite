@@ -110,6 +110,7 @@ Parse user arguments:
 - `AUDIT_MODE`: true only when `audit` is explicitly present.
 - `REVIEW_BACKEND`: default `codex`.
 - `REVIEWER_MODEL`: default `gpt-5.5`.
+- `MODEL_FALLBACK_CHAIN`: ordered list of models to try if `REVIEWER_MODEL` is unavailable. Default: `["gpt-5.5", "o3", "gpt-4.1", "gpt-4o"]`. When the user explicitly sets `reviewer:<model>`, that model is tried first, then the remaining chain in order. When no model is specified, the full default chain is used.
 - `REVIEWER_REASONING`: default `xhigh`.
 - `REVIEWER_SANDBOX`: default `workspace-write`.
 - `REVIEWER_APPROVAL_MODE`: default `auto_review`.
@@ -522,9 +523,9 @@ This closes the gap where `git status --porcelain` cannot detect content changes
 
 Pass `advreview-dirty-files-${REVIEW_ID}.txt` to the runner as a do-not-touch warning list. The main skill still owns enforcement. If a dirty-file hash changes, stop before applying fixes.
 
-## Step 6: Model Preflight
+## Step 6: Model Preflight With Fallback
 
-Run once before the first reviewer dispatch.
+Run once before the first reviewer dispatch. This step tries models from the fallback chain until one responds, so the skill does not hard-stop on a single model being unavailable.
 
 Choose `PREFLIGHT_SANDBOX`:
 
@@ -532,10 +533,12 @@ Choose `PREFLIGHT_SANDBOX`:
 - if `PLATFORM=windows` and the selected sandbox is `read-only` or `workspace-write`, use `danger-full-access` for model preflight only and warn that this checks model/auth availability, not sandbox viability;
 - otherwise use the same sandbox as the review.
 
-Example:
+### Fallback Loop
+
+Try each model in `MODEL_FALLBACK_CHAIN` in order. For each model:
 
 ```bash
-timeout 30 codex exec -m ${REVIEWER_MODEL} -s ${PREFLIGHT_SANDBOX} \
+timeout 30 codex exec -m ${CANDIDATE_MODEL} -s ${PREFLIGHT_SANDBOX} \
   "Reply with exactly the text MODEL_OK and nothing else" \
   -o "${TMP_ROOT}/advreview-preflight-${REVIEW_ID}.txt" \
   2>"${TMP_ROOT}/advreview-preflight-err-${REVIEW_ID}.txt"
@@ -543,15 +546,40 @@ timeout 30 codex exec -m ${REVIEWER_MODEL} -s ${PREFLIGHT_SANDBOX} \
 
 If `REVIEWER_SANDBOX=inherit`, omit `-s ${PREFLIGHT_SANDBOX}`.
 
-If the output file contains `MODEL_OK`, continue.
-
-If stderr indicates model, auth, quota, or login failure, stop with:
+**If the output file contains `MODEL_OK`**:
+- Set `REVIEWER_MODEL` to this model.
+- If this is not the first model in the chain (i.e., a fallback was used), inform the user:
 
 ```text
-Reviewer model "${REVIEWER_MODEL}" is not available through Codex CLI. Check the model name, auth, quota, or API key.
+Requested model "${ORIGINAL_MODEL}" is unavailable. Falling back to "${REVIEWER_MODEL}".
 ```
 
-If preflight times out after 30 seconds, warn the user and continue. Do not treat a timeout as proof the model works.
+- Continue to Step 7.
+
+**If the model fails** (stderr indicates model-not-found, auth, or quota error):
+- Log the failure: `Model "${CANDIDATE_MODEL}" unavailable: <error summary>`
+- Try the next model in the chain.
+
+**If the model times out** (30 seconds):
+- Warn: `Model "${CANDIDATE_MODEL}" timed out during preflight. Trying next model.`
+- Try the next model in the chain.
+
+### All Models Exhausted
+
+If every model in `MODEL_FALLBACK_CHAIN` fails, stop with:
+
+```text
+No reviewer model is available through Codex CLI. Tried: ${MODEL_FALLBACK_CHAIN}.
+Check auth (codex login), quota, or API key. You can also specify a model explicitly: reviewer:<model-name>
+```
+
+### Auth vs Model Failure
+
+If stderr from the first attempted model indicates an auth or login failure (not a model-specific error), stop immediately without trying further models — the issue is account-level, not model-level:
+
+```text
+Codex CLI auth failure. Run "codex login" to authenticate, then retry.
+```
 
 ## Step 7: Build Reviewer Prompt
 

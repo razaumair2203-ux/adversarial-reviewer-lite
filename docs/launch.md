@@ -8,7 +8,7 @@ I built Adversarial Reviewer Lite: a Claude Code skill that asks Codex CLI to re
 It is intentionally small:
 - Claude Code = builder
 - Codex CLI = independent reviewer
-- Windows-aware defaults
+- Cross-platform (Windows, macOS, Linux, WSL)
 - mutation checks
 - report before fixes
 - user sign-off before code changes
@@ -32,7 +32,7 @@ I made a small Claude Code skill for agentic coding users who want a second mode
 
 The workflow is intentionally narrow: Claude Code acts as the builder, Codex CLI acts as an independent reviewer, and the skill forces a report/sign-off step before fixes are applied.
 
-It is Windows-aware because Codex sandboxing can hit bwrap/bubblewrap issues on Windows. The skill uses pragmatic defaults plus mutation checks rather than pretending this is a security boundary.
+It handles platform-specific sandbox limitations (bwrap/bubblewrap is unavailable on Windows and some macOS setups). The skill uses pragmatic defaults plus mutation checks rather than pretending this is a security boundary.
 
 It is not a replacement for tests or human review. It is a guardrail for hallucinated APIs, scope creep, weak verification, and over-obedient AI-on-AI feedback loops.
 ```
@@ -51,7 +51,7 @@ Outline:
 - Same-agent self-review often shares the original assumptions.
 - A second model gives a different failure surface.
 - Reviewer findings are not commands; they need builder verification.
-- Windows users need pragmatic sandbox guidance.
+- Platform sandbox limitations need pragmatic handling.
 - The skill packages the boring safety steps people skip manually.
 - Demo: run `/adversarial-reviewer-lite audit`.
 

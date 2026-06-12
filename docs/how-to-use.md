@@ -73,6 +73,16 @@ The default reviewer model is `gpt-5.5`. If your Codex account does not have tha
 
 If you do not have Codex CLI yet, see [no-codex-yet.md](no-codex-yet.md) for the manual trial prompt and setup path.
 
+## Validate Setup
+
+After installing, validate that everything works on your machine:
+
+```text
+/adversarial-reviewer-lite selftest
+```
+
+This checks all prerequisites, temp paths, hash tools, model access, and end-to-end dispatch — without sending any repo content. Run it once on any new machine or after upgrades.
+
 ## Invoke
 
 From inside a Git repo in Claude Code:
@@ -127,7 +137,7 @@ A manual second-agent review can help, but it relies on the user remembering eve
 
 - privacy notice before repo context is sent to Codex;
 - model preflight;
-- Windows sandbox handling;
+- platform-specific sandbox handling;
 - dirty-file mutation checks;
 - strict reviewer output format;
 - builder-side accept/reject/re-scope/defer decisions;

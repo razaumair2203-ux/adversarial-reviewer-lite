@@ -11,7 +11,7 @@ adversarial-reviewer-lite
 Suggested GitHub description:
 
 ```text
-Claude Code skill for Windows-friendly adversarial AI code review using Codex CLI as an independent reviewer.
+Adversarial Reviewer Lite — Claude Code skill for independent AI code review using Codex CLI. Cross-platform (Windows, macOS, Linux, WSL) with platform-aware defaults.
 ```
 
 Suggested topics:
@@ -23,7 +23,7 @@ ai-code-review
 adversarial-review
 codex-cli
 agentic-coding
-windows-dev
+cross-platform
 llm-tools
 code-review
 ai-safety

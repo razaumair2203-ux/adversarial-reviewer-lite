@@ -10,7 +10,7 @@ This is for product builders — people using AI to build apps, APIs, and produc
 
 **This is not circular.** The builder builds and helps you define test specifications. You invoke the audit. The builder passes the code and specification contract to the reviewer. The reviewer reviews adversarially — it does not touch any files. Findings go back to the builder. The builder assesses and validates each issue — still does not touch any artifact — and presents an easy-to-read HTML report: what the issues are, their impact, and recommended next steps. Nothing changes until you sign off.
 
-The first release is intentionally narrow: Claude Code builder, Codex reviewer, one-pass audit, Windows-aware defaults, and user sign-off before code changes. Many developers building with AI coding tools are on Windows, where Linux-style sandboxing quietly fails. This skill detects your platform, handles sandbox limitations explicitly, and works out of the box.
+The first release is intentionally narrow: Claude Code builder, Codex reviewer, one-pass audit, platform-aware defaults, and user sign-off before code changes. It works on Windows (Git Bash), macOS, Linux, and WSL. The skill detects your platform, handles sandbox limitations explicitly, and works out of the box — including platforms where Linux-style sandboxing (`bwrap`) is unavailable.
 
 ![Audit report preview](docs/assets/audit-report-preview.svg)
 
@@ -209,7 +209,7 @@ The skill makes the review repeatable:
 - it passes focused test specs and sample data when available;
 - it warns before repo content goes to an external reviewer;
 - it preflights the requested Codex model;
-- it handles Windows sandbox defaults explicitly;
+- it handles platform-specific sandbox defaults explicitly;
 - it records Git and dirty-file hashes before/after reviewer dispatch;
 - it requires `VERDICT: APPROVED` or `VERDICT: REVISE`;
 - it separates reviewer suggestions from builder decisions;
@@ -298,13 +298,19 @@ If the output is mostly sandbox errors, generic advice, or praise, treat it as n
    ~/.claude/skills/adversarial-reviewer-lite
    ```
 
-5. Invoke it from Claude Code.
+5. Validate your setup.
+
+   ```text
+   /adversarial-reviewer-lite selftest
+   ```
+
+6. Invoke it from Claude Code.
 
    ```text
    /adversarial-reviewer-lite audit
    ```
 
-6. Optional overrides:
+7. Optional overrides:
 
    ```text
    /adversarial-reviewer-lite audit reviewer:gpt-5.5 reasoning:xhigh
@@ -389,9 +395,9 @@ This is the main difference between a useful review workflow and a dangerous "AI
 | Same-agent self-review | Fast sanity check | Shares context and assumptions with the builder. |
 | Adversarial Reviewer Lite | Local pre-trust audit of Claude Code work | Requires Codex CLI and deliberate invocation. |
 
-## Windows Notes
+## Platform Notes
 
-Adversarial Reviewer Lite supports Windows through Git Bash or WSL, not through a raw PowerShell/CMD runtime. Codex sandboxing often relies on `bwrap`/bubblewrap. That works on many Linux setups, can work under WSL2, and fails on most native Windows setups. Adversarial Reviewer Lite detects Windows-style paths and uses `danger-full-access` by default unless you explicitly override it. This is a practical workaround for the Windows sandbox limitation, not a claim that full access is safer.
+Adversarial Reviewer Lite runs on Windows (Git Bash), macOS, Linux, and WSL. On Windows, the skill requires Git Bash or WSL as its shell — not raw PowerShell/CMD. Codex sandboxing often relies on `bwrap`/bubblewrap, which works on most Linux setups, can work under WSL2, and fails on most native Windows and macOS setups. On platforms where `bwrap` is unavailable, the skill defaults to `danger-full-access` unless you explicitly override it. This is a practical workaround, not a claim that full access is safer.
 
 That sounds scary because it is real power. The skill compensates with:
 
@@ -429,7 +435,7 @@ Before it dispatches the reviewer, the skill should stop cleanly if:
 - the requested reviewer model is unavailable;
 - required shell tools such as `timeout`, `grep`, `tail`, `cat`, `sort`, and a SHA-256 hash tool are missing;
 - the temp directory cannot be created outside the repo;
-- Windows sandbox settings would fail because `bwrap` is unavailable.
+- sandbox settings would fail because `bwrap` is unavailable on this platform.
 
 These checks are there so a missing Codex install becomes a helpful setup message, not a confusing failed review.
 
@@ -466,8 +472,8 @@ For a fuller table, see [docs/troubleshooting.md](docs/troubleshooting.md).
 | Reviewer backend | `codex` |
 | Reviewer model | `gpt-5.5` |
 | Reasoning | `xhigh` |
-| Unix/macOS sandbox | `workspace-write` |
-| Windows sandbox | `danger-full-access` with warning |
+| Sandbox (bwrap available) | `workspace-write` |
+| Sandbox (no bwrap — Windows, some macOS) | `danger-full-access` with warning |
 | Approval mode | `auto_review` |
 | Recommended mode | `audit` |
 | Builder | Claude Code |

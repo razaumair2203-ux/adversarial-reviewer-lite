@@ -35,7 +35,7 @@ The builder does not silently invoke the reviewer. It is user-initiated, user-co
 
 **Specifically tailored for product builders without a deep software background.** After much trial and iteration, we arrived at a workflow that explains findings in context, advises you with reasoning, and lets you make the final call — not a raw code dump that assumes you know what a race condition is.
 
-We also had to build Windows workarounds. Many agentic coding tools assume Linux-style sandboxing that quietly fails on Windows. This skill detects your platform, handles sandbox limitations explicitly, and works out of the box on Windows with Git Bash or WSL.
+We also had to build cross-platform workarounds. Many agentic coding tools assume Linux-style sandboxing that quietly fails on Windows and macOS. This skill detects your platform, handles sandbox limitations explicitly, and works out of the box on Windows (Git Bash), macOS, Linux, and WSL.
 
 **Install is straightforward:**
 
@@ -61,4 +61,4 @@ Suggested image attachment:
 
 docs/assets/audit-report-preview.jpg
 
-#AIHallucination #VibeCoding #ClaudeCode #Codex #AgenticAI #CodeReview #AISafety #AICodeReview #WindowsDev #LLM #BuildWithAI #ProductDevelopment
+#AIHallucination #VibeCoding #ClaudeCode #Codex #AgenticAI #CodeReview #AISafety #AICodeReview #CrossPlatform #LLM #BuildWithAI #ProductDevelopment

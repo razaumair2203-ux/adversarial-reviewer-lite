@@ -1,6 +1,6 @@
 ﻿---
 name: adversarial-reviewer-lite
-description: Adversarial Reviewer Lite: user-invoked audit workflow for Claude Code users who want Codex CLI to independently review AI-generated code, plans, test expectations, and scope before fixes are applied. Use only when the user explicitly invokes audit.
+description: Adversarial Reviewer Lite: user-invoked audit workflow for Claude Code users who want Codex CLI to independently review AI-generated code, plans, test expectations, and scope before fixes are applied. Cross-platform (Windows, macOS, Linux, WSL). Use only when the user explicitly invokes audit or selftest.
 user_invocable: true
 disable-model-invocation: true
 argument-hint: "audit [path] [reviewer:<model>] [test-spec:<path>] [test-data:<path>] | selftest"

@@ -160,24 +160,26 @@ Skip preflight for:
 Use a 600 second timeout for reviewer execution.
 
 **Important runtime notes:**
-- `codex exec` writes its response to stdout, not to a file — there is no `-o` flag. Use stdout redirection (`> file`) to capture the review output.
-- `codex exec` does not have a `--json` flag in current versions.
-- Use `--dangerously-bypass-approvals-and-sandbox` for non-interactive execution. Without it, `codex exec` hangs waiting for interactive approval prompts even when `-s danger-full-access` is specified.
+- `-o file` (`--output-last-message`) captures the agent's final response to a file. Use this for the review output.
+- `--json` prints JSONL events to stdout (session metadata, tool calls, etc.). This is separate from `-o` and can be used alongside it for diagnostics.
+- `codex exec` is non-interactive — always pass `-c approval_policy=never` to prevent the process from hanging on approval prompts that will never be answered. The sandbox flag (`-s`) is the actual security boundary.
+- Never use `--dangerously-bypass-approvals-and-sandbox` — it removes all sandbox protection. Use `-s <mode>` + `-c approval_policy=never` instead.
 
 Base command:
 
 ```bash
 cat "${TMP_ROOT}/advreview-prompt-${REVIEW_ID}.md" | \
   timeout 600 codex exec -m ${REVIEWER_MODEL} \
+    -s ${REVIEWER_SANDBOX} \
+    -c approval_policy=never \
     -c model_reasoning_effort=${REVIEWER_REASONING} \
-    --dangerously-bypass-approvals-and-sandbox \
     -C "${REPO_ROOT}" \
+    -o "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" \
     - \
-  > "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" \
   2>"${TMP_ROOT}/advreview-stderr-${REVIEW_ID}.txt"
 ```
 
-The prompt file is piped via stdin (the `-` argument tells `codex exec` to read from stdin). The review output is captured from stdout into the review file. Stderr is captured separately for diagnostics.
+The prompt file is piped via stdin (the `-` argument tells `codex exec` to read from stdin). The `-o` flag writes the agent's last message to the review file. Stderr is captured separately for diagnostics. If `REVIEWER_SANDBOX=inherit`, omit the `-s` flag.
 
 ## Step R5: Retry Policy
 

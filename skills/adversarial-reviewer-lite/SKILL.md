@@ -226,7 +226,7 @@ This single check validates model access AND end-to-end dispatch in one Codex ca
 
 The builder must substitute the actual `MODEL_FALLBACK_CHAIN` from Step 1 into the loop below. If the user specified `reviewer:<model>`, that model goes first.
 
-**Important**: `codex exec` writes its response to stdout, not to a file. Use stdout redirection (`> file`) to capture output. The `--dangerously-bypass-approvals-and-sandbox` flag is required for non-interactive execution — without it, `codex exec` hangs waiting for interactive approval prompts even with `-s danger-full-access`.
+**Important**: `codex exec` is non-interactive — it has no user to approve commands. Always pass `-c approval_policy=never` to prevent hangs. The sandbox flag (`-s`) still constrains what the reviewer can do. Use `-o file` to capture the agent's last message to a file.
 
 ```bash
 TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
@@ -235,7 +235,9 @@ SELFTEST_FOUND_MODEL=""
 for MODEL in gpt-5.5 o3 gpt-4.1 gpt-4o; do
   echo "Trying model: ${MODEL}..."
   timeout 60 codex exec -m "${MODEL}" \
-    --dangerously-bypass-approvals-and-sandbox \
+    -s danger-full-access \
+    -c approval_policy=never \
+    -o "${TMP_ROOT}/selftest-dispatch-out.md" \
     "You are testing a review pipeline. Reply with exactly this text and nothing else:
 # Summary
 Self-test passed.
@@ -247,7 +249,6 @@ None.
 - Needs revision: 0
 # Verdict
 VERDICT: APPROVED" \
-    > "${TMP_ROOT}/selftest-dispatch-out.md" \
     2>"${TMP_ROOT}/selftest-dispatch-err.txt"
 
   if [ -f "${TMP_ROOT}/selftest-dispatch-out.md" ] && grep -q "VERDICT:" "${TMP_ROOT}/selftest-dispatch-out.md" 2>/dev/null; then
@@ -353,16 +354,16 @@ Parse user arguments:
 
 Map approval mode for Codex backend:
 
-| User option | `approval_policy` | `approvals_reviewer` | Use when |
+`codex exec` is non-interactive — there is no user to approve commands at runtime. All `codex exec` invocations MUST use `-c approval_policy=never` to prevent the process from hanging on an approval prompt that will never be answered. The sandbox flag (`-s`) is the actual security boundary — it constrains what the reviewer can do regardless of approval policy.
+
+| User option | `-c approval_policy` | `-s` sandbox | Use when |
 |---|---|---|---|
-| `approvals:auto_review` | `on-request` | `auto_review` | Default; avoids hidden hangs while still requiring review for boundary-crossing operations. |
-| `approvals:user` | `on-request` | unset | The user wants to approve nested reviewer requests directly. |
-| `approvals:never` | `never` | unset | CI-like, no interactive approval; reviewer must stay inside allowed operations. |
+| `approvals:auto_review` (default) | `never` | `workspace-write` (Unix) / `danger-full-access` (Windows) | Default; sandbox constrains file access. |
+| `approvals:never` | `never` | same as default | Explicit — same behavior as default for `codex exec`. |
 
 Set:
 
-- `REVIEWER_APPROVAL_POLICY`
-- `REVIEWER_APPROVALS_REVIEWER`
+- `REVIEWER_APPROVAL_POLICY`: always `never` for `codex exec`
 
 If `REVIEW_BACKEND` is anything other than `codex`, stop with:
 
@@ -788,15 +789,18 @@ Choose `PREFLIGHT_SANDBOX`:
 
 Try each model in `MODEL_FALLBACK_CHAIN` in order. For each model:
 
-**Important**: `codex exec` writes its response to stdout, not to a file — use stdout redirection to capture output. Use `--dangerously-bypass-approvals-and-sandbox` for non-interactive execution; without it, `codex exec` hangs waiting for interactive approval prompts even with `-s danger-full-access`.
+**Important**: `codex exec` is non-interactive — always pass `-c approval_policy=never` to prevent hangs waiting for user approval that will never come. The sandbox flag (`-s`) still constrains what commands the reviewer can execute. Use `-o file` to capture the agent's last message.
 
 ```bash
 timeout 60 codex exec -m ${CANDIDATE_MODEL} \
-  --dangerously-bypass-approvals-and-sandbox \
+  -s ${PREFLIGHT_SANDBOX} \
+  -c approval_policy=never \
+  -o "${TMP_ROOT}/advreview-preflight-${REVIEW_ID}.txt" \
   "Reply with exactly the text MODEL_OK and nothing else" \
-  > "${TMP_ROOT}/advreview-preflight-${REVIEW_ID}.txt" \
   2>"${TMP_ROOT}/advreview-preflight-err-${REVIEW_ID}.txt"
 ```
+
+If `REVIEWER_SANDBOX=inherit`, omit `-s ${PREFLIGHT_SANDBOX}`.
 
 **If the output file contains `MODEL_OK`**:
 - Set `REVIEWER_MODEL` to this model.

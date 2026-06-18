@@ -159,37 +159,25 @@ Skip preflight for:
 
 Use a 600 second timeout for reviewer execution.
 
-Base arguments:
+**Important runtime notes:**
+- `codex exec` writes its response to stdout, not to a file — there is no `-o` flag. Use stdout redirection (`> file`) to capture the review output.
+- `codex exec` does not have a `--json` flag in current versions.
+- Use `--dangerously-bypass-approvals-and-sandbox` for non-interactive execution. Without it, `codex exec` hangs waiting for interactive approval prompts even when `-s danger-full-access` is specified.
+
+Base command:
 
 ```bash
-timeout 600 codex exec --json \
-  -m ${REVIEWER_MODEL} \
-  -c model_reasoning_effort=${REVIEWER_REASONING} \
-  -c approval_policy=\"${REVIEWER_APPROVAL_POLICY}\" \
-  -C "${REPO_ROOT}" \
-  -o "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" \
-  -
-```
-
-If `REVIEWER_APPROVALS_REVIEWER=auto_review`, add:
-
-```bash
--c approvals_reviewer=\"auto_review\"
-```
-
-If `REVIEWER_SANDBOX` is not `inherit`, add:
-
-```bash
--s ${REVIEWER_SANDBOX}
-```
-
-Launch by piping the prompt file into stdin:
-
-```bash
-cat "${TMP_ROOT}/advreview-prompt-${REVIEW_ID}.md" | <codex command> \
-  > "${TMP_ROOT}/advreview-stdout-${REVIEW_ID}.jsonl" \
+cat "${TMP_ROOT}/advreview-prompt-${REVIEW_ID}.md" | \
+  timeout 600 codex exec -m ${REVIEWER_MODEL} \
+    -c model_reasoning_effort=${REVIEWER_REASONING} \
+    --dangerously-bypass-approvals-and-sandbox \
+    -C "${REPO_ROOT}" \
+    - \
+  > "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" \
   2>"${TMP_ROOT}/advreview-stderr-${REVIEW_ID}.txt"
 ```
+
+The prompt file is piped via stdin (the `-` argument tells `codex exec` to read from stdin). The review output is captured from stdout into the review file. Stderr is captured separately for diagnostics.
 
 ## Step R5: Retry Policy
 

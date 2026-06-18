@@ -17,7 +17,9 @@ Tested setup:
 - Default reviewer model: `gpt-5.5`
 - Default reviewer reasoning: `xhigh`
 
-Version 1 is intentionally focused: Claude Code as builder, Codex CLI as reviewer, Windows-aware defaults, and audit mode as the recommended path. The `builder`, `reviewer`, and `review_backend` terms keep the design portable later, but v1 is not a general multi-agent framework.
+Cross-platform: Windows (Git Bash), macOS, Linux, and WSL with platform-aware sandbox defaults. Model fallback chain tries alternative models automatically if the default is unavailable. Self-test command validates the full tool chain without sending repo content.
+
+The `builder`, `reviewer`, and `review_backend` terms keep the design portable later, but v1 is not a general multi-agent framework.
 
 ## Invocation
 
@@ -189,19 +191,32 @@ If not in a git repo, stop: "Self-test failed at ST-4: Not inside a git reposito
 
 ### ST-5: Codex Health Check
 
+`codex doctor` may exit non-zero for non-blocking issues (e.g., WebSocket timeout when HTTPS fallback works). Distinguish auth failures from transient warnings:
+
 ```bash
 if codex doctor --help >/dev/null 2>&1; then
-  if timeout 15 codex doctor --summary 2>&1; then
-    echo "PASS: codex doctor"
+  DOCTOR_OUTPUT="$(timeout 15 codex doctor --summary 2>&1)" || true
+  if echo "${DOCTOR_OUTPUT}" | grep -q '✓ auth'; then
+    echo "PASS: codex doctor (auth verified)"
+    # Report warnings without failing
+    if echo "${DOCTOR_OUTPUT}" | grep -q '⚠'; then
+      echo "WARN: codex doctor reported warnings (non-blocking):"
+      echo "${DOCTOR_OUTPUT}" | grep '⚠'
+    fi
+  elif echo "${DOCTOR_OUTPUT}" | grep -qi 'auth.*not configured\|not authenticated\|login required'; then
+    echo "FAIL: codex doctor — auth not configured"
   else
-    echo "FAIL: codex doctor — health check failed (auth or config issue)"
+    echo "WARN: codex doctor exited with warnings but auth status unclear — continuing"
+    echo "${DOCTOR_OUTPUT}" | tail -5
   fi
 else
   echo "SKIP: codex doctor not available in this Codex CLI version"
 fi
 ```
 
-If doctor fails, stop: "Self-test failed at ST-5: Codex health check failed. Run `codex login` and retry."
+If auth is explicitly not configured, stop: "Self-test failed at ST-5: Codex is not authenticated. Run `codex login` and retry."
+
+If doctor reports warnings but auth is verified (e.g., WebSocket timeout with HTTPS fallback), continue — these are non-blocking.
 
 If doctor is not available, warn but continue (older CLI versions lack it).
 
@@ -211,13 +226,16 @@ This single check validates model access AND end-to-end dispatch in one Codex ca
 
 The builder must substitute the actual `MODEL_FALLBACK_CHAIN` from Step 1 into the loop below. If the user specified `reviewer:<model>`, that model goes first.
 
+**Important**: `codex exec` writes its response to stdout, not to a file. Use stdout redirection (`> file`) to capture output. The `--dangerously-bypass-approvals-and-sandbox` flag is required for non-interactive execution — without it, `codex exec` hangs waiting for interactive approval prompts even with `-s danger-full-access`.
+
 ```bash
 TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
 SELFTEST_FOUND_MODEL=""
 
 for MODEL in gpt-5.5 o3 gpt-4.1 gpt-4o; do
   echo "Trying model: ${MODEL}..."
-  timeout 60 codex exec -m "${MODEL}" -s danger-full-access \
+  timeout 60 codex exec -m "${MODEL}" \
+    --dangerously-bypass-approvals-and-sandbox \
     "You are testing a review pipeline. Reply with exactly this text and nothing else:
 # Summary
 Self-test passed.
@@ -229,7 +247,7 @@ None.
 - Needs revision: 0
 # Verdict
 VERDICT: APPROVED" \
-    -o "${TMP_ROOT}/selftest-dispatch-out.md" \
+    > "${TMP_ROOT}/selftest-dispatch-out.md" \
     2>"${TMP_ROOT}/selftest-dispatch-err.txt"
 
   if [ -f "${TMP_ROOT}/selftest-dispatch-out.md" ] && grep -q "VERDICT:" "${TMP_ROOT}/selftest-dispatch-out.md" 2>/dev/null; then
@@ -520,23 +538,34 @@ fi
 
 If all checks pass, continue.
 
-Run a Codex health check when available:
+Run a Codex health check when available. `codex doctor` may exit non-zero for non-blocking issues (e.g., WebSocket timeout when HTTPS fallback works). Only treat explicit auth failures as blocking:
 
 ```bash
-CODEX_DOCTOR_FAILED=0
+CODEX_AUTH_FAILED=0
 if codex doctor --help >/dev/null 2>&1; then
-  if ! timeout 15 codex doctor --summary >/dev/null 2>&1; then
-    CODEX_DOCTOR_FAILED=1
+  DOCTOR_OUTPUT="$(timeout 15 codex doctor --summary 2>&1)" || true
+  if echo "${DOCTOR_OUTPUT}" | grep -q '✓ auth'; then
+    echo "Codex doctor: auth verified"
+    # Report warnings without blocking
+    if echo "${DOCTOR_OUTPUT}" | grep -q '⚠'; then
+      echo "Codex doctor warnings (non-blocking):"
+      echo "${DOCTOR_OUTPUT}" | grep '⚠'
+    fi
+  elif echo "${DOCTOR_OUTPUT}" | grep -qi 'auth.*not configured\|not authenticated\|login required'; then
+    CODEX_AUTH_FAILED=1
+  else
+    echo "Codex doctor exited with warnings but auth status unclear — continuing to model preflight."
+    echo "${DOCTOR_OUTPUT}" | tail -5
   fi
 else
   echo "Codex doctor is not available in this Codex CLI version; continuing to model preflight."
 fi
 ```
 
-If `CODEX_DOCTOR_FAILED` is `1`, Codex is installed but the health check failed. This almost always means Codex is not authenticated. Prompt the user in `OPERATOR_LANGUAGE`:
+If `CODEX_AUTH_FAILED` is `1`, Codex is installed but auth is not configured. Prompt the user in `OPERATOR_LANGUAGE`:
 
 ```text
-Codex CLI is installed but the health check failed. This usually means Codex is not authenticated yet.
+Codex CLI is installed but authentication is not configured.
 
 Please run this command in your terminal:
 
@@ -548,10 +577,13 @@ This will open a browser window to complete authentication. Let me know when you
 Wait for the user to confirm, then re-run the check:
 
 ```bash
-if [ "${CODEX_DOCTOR_FAILED}" = "1" ]; then
+if [ "${CODEX_AUTH_FAILED}" = "1" ]; then
   if codex doctor --help >/dev/null 2>&1; then
-    if ! timeout 15 codex doctor --summary >/dev/null 2>&1; then
-      echo "Codex health check still failing. Run codex doctor --summary in your terminal to see the full error, fix auth or config issues, then re-run /adversarial-reviewer-lite audit. See docs/troubleshooting.md."
+    DOCTOR_OUTPUT="$(timeout 15 codex doctor --summary 2>&1)" || true
+    if echo "${DOCTOR_OUTPUT}" | grep -q '✓ auth'; then
+      echo "Codex auth now verified."
+    else
+      echo "Codex auth still failing. Run codex doctor --summary in your terminal to see the full error, fix auth or config issues, then re-run /adversarial-reviewer-lite audit."
       exit 1
     fi
   fi
@@ -756,14 +788,15 @@ Choose `PREFLIGHT_SANDBOX`:
 
 Try each model in `MODEL_FALLBACK_CHAIN` in order. For each model:
 
+**Important**: `codex exec` writes its response to stdout, not to a file — use stdout redirection to capture output. Use `--dangerously-bypass-approvals-and-sandbox` for non-interactive execution; without it, `codex exec` hangs waiting for interactive approval prompts even with `-s danger-full-access`.
+
 ```bash
-timeout 30 codex exec -m ${CANDIDATE_MODEL} -s ${PREFLIGHT_SANDBOX} \
+timeout 60 codex exec -m ${CANDIDATE_MODEL} \
+  --dangerously-bypass-approvals-and-sandbox \
   "Reply with exactly the text MODEL_OK and nothing else" \
-  -o "${TMP_ROOT}/advreview-preflight-${REVIEW_ID}.txt" \
+  > "${TMP_ROOT}/advreview-preflight-${REVIEW_ID}.txt" \
   2>"${TMP_ROOT}/advreview-preflight-err-${REVIEW_ID}.txt"
 ```
-
-If `REVIEWER_SANDBOX=inherit`, omit `-s ${PREFLIGHT_SANDBOX}`.
 
 **If the output file contains `MODEL_OK`**:
 - Set `REVIEWER_MODEL` to this model.

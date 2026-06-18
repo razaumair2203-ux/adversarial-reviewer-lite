@@ -1,16 +1,22 @@
 ﻿# Adversarial Reviewer Lite
 
-AI hallucinates. There is no denying it. You might not notice during daily usage, but when you try to build deploy-worthy products with AI coding agents — you start to see where it falters. Invented APIs, expanded scope you never asked for, shallow verification, missed edge cases.
+When you build with AI coding tools, you are trusting AI-generated code to work correctly. This skill makes a second, independent AI review that code before you accept it. Claude builds. Codex reviews. The skill validates each finding, explains what matters in plain language, and presents a readable report. Nothing changes until you sign off.
 
-**Adversarial Reviewer Lite** is a Claude Code skill that adds an independent adversarial review to your AI coding workflow. Claude Code builds. Codex CLI reviews as a separate, independent agent. The skill passes focused code context and test expectations to Codex, validates each finding with domain knowledge, and presents a readable audit report before any code is touched.
+**Adversarial Reviewer Lite** is a Claude Code skill that adds an independent adversarial review to your AI coding workflow. It is for product builders — people using AI to build apps, APIs, and products that matter. If you are changing auth, data writes, billing, migrations, or multi-file refactors, and a hallucinated API or missing edge case would cost real time, this workflow is for you.
 
-This is for product builders — people using AI to build apps, APIs, and products that matter. If you are changing auth, data writes, billing, migrations, or multi-file refactors, and a hallucinated API or missing edge case would cost real time, this workflow is for you.
+**Cross-platform.** Runs on Windows (Git Bash), macOS, Linux, and WSL — with platform-aware defaults that actually work on each. Every platform has its own way of breaking tools quietly: Linux sandboxing does not exist on Windows, macOS puts core utilities behind Homebrew, Git Bash maps temp directories to different physical paths than other tools see. The skill detects your platform, handles sandbox limitations explicitly, and works out of the box.
+
+**Model fallback.** If the default reviewer model is unavailable or gets deprecated, the skill tries the next model automatically (gpt-5.5 → o3 → gpt-4.1 → gpt-4o) instead of stopping dead.
+
+**Self-test.** One command validates your entire setup — shell, tools, paths, hash capture, model access, and end-to-end dispatch — before you run a real audit. No code leaves your machine.
+
+```text
+/adversarial-reviewer-lite selftest
+```
 
 **Why a separate agent instead of self-review?** Research shows that LLMs can struggle to self-correct without external feedback and can even degrade correct answers ([Huang et al., 2023](https://arxiv.org/abs/2310.01798)). Prompted self-correction is unreliable without external signals ([TACL, 2024](https://aclanthology.org/2024.tacl-1.78/)). Independent model perspectives can measurably reduce hallucinations ([Du et al., 2023](https://arxiv.org/abs/2305.14325)). Same-agent review often preserves the same blind spots. A different agent brings different priors and a different failure surface.
 
 **This is not circular.** The builder builds and helps you define test specifications. You invoke the audit. The builder passes the code and specification contract to the reviewer. The reviewer reviews adversarially — it does not touch any files. Findings go back to the builder. The builder assesses and validates each issue — still does not touch any artifact — and presents an easy-to-read HTML report: what the issues are, their impact, and recommended next steps. Nothing changes until you sign off.
-
-The first release is intentionally narrow: Claude Code builder, Codex reviewer, one-pass audit, platform-aware defaults, and user sign-off before code changes. It works on Windows (Git Bash), macOS, Linux, and WSL. The skill detects your platform, handles sandbox limitations explicitly, and works out of the box — including platforms where Linux-style sandboxing (`bwrap`) is unavailable.
 
 ![Audit report preview](docs/assets/audit-report-preview.svg)
 

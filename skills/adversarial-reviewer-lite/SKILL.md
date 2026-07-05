@@ -234,9 +234,15 @@ SELFTEST_FOUND_MODEL=""
 
 for MODEL in gpt-5.5 o3 gpt-4.1 gpt-4o; do
   echo "Trying model: ${MODEL}..."
+  # --skip-git-repo-check: this dispatch sends NO repo content (dummy prompt), so Codex's
+  # trusted-directory guard adds no safety here and would otherwise fail with
+  # "Not inside a trusted directory" whenever the CWD is not a git repo — a failure that
+  # is unrelated to model availability. The real audit (runner.md R4) keeps full git
+  # protection via -C "${REPO_ROOT}".
   timeout 60 codex exec -m "${MODEL}" \
     -s danger-full-access \
     -c approval_policy=never \
+    --skip-git-repo-check \
     -o "${TMP_ROOT}/selftest-dispatch-out.md" \
     "You are testing a review pipeline. Reply with exactly this text and nothing else:
 # Summary
@@ -258,7 +264,17 @@ VERDICT: APPROVED" \
     rm -f "${TMP_ROOT}/selftest-dispatch-out.md" "${TMP_ROOT}/selftest-dispatch-err.txt"
     break
   else
-    echo "SKIP: model ${MODEL} — unavailable or dispatch failed"
+    # Distinguish an environmental block (trusted-directory / sandbox / auth) from a
+    # genuine model-availability failure so the final message points at the right fix.
+    if [ -f "${TMP_ROOT}/selftest-dispatch-err.txt" ] \
+       && grep -qi 'trusted directory\|skip-git-repo-check' "${TMP_ROOT}/selftest-dispatch-err.txt"; then
+      echo "ENV-BLOCK: Codex refused because the working directory is not a trusted git directory."
+      echo "This is NOT a model problem. The dispatch already passes --skip-git-repo-check; if you"
+      echo "still see this, run the self-test from inside a git repository."
+      SELFTEST_TRUST_BLOCK=1
+    else
+      echo "SKIP: model ${MODEL} — unavailable or dispatch failed"
+    fi
     if [ -f "${TMP_ROOT}/selftest-dispatch-err.txt" ]; then
       tail -3 "${TMP_ROOT}/selftest-dispatch-err.txt"
     fi
@@ -271,7 +287,7 @@ if [ -z "${SELFTEST_FOUND_MODEL}" ]; then
 fi
 ```
 
-If `SELFTEST_FOUND_MODEL` is empty after the loop, stop: "Self-test failed at ST-6: No reviewer model is available. Tried all models in fallback chain. Check auth (`codex login`), quota, or network connectivity."
+If `SELFTEST_FOUND_MODEL` is empty after the loop, stop. Choose the message by cause: if `SELFTEST_TRUST_BLOCK=1`, report "Self-test failed at ST-6: Codex refused because the current directory is not a trusted git directory. Run the self-test from inside a git repository (this is not an auth/quota problem)." Otherwise report "Self-test failed at ST-6: No reviewer model is available. Tried all models in fallback chain. Check auth (`codex login`), quota, or network connectivity."
 
 If the first model was unavailable but a fallback worked, report which model will be used in audits.
 
@@ -792,9 +808,14 @@ Try each model in `MODEL_FALLBACK_CHAIN` in order. For each model:
 **Important**: `codex exec` is non-interactive — always pass `-c approval_policy=never` to prevent hangs waiting for user approval that will never come. The sandbox flag (`-s`) still constrains what commands the reviewer can execute. Use `-o file` to capture the agent's last message.
 
 ```bash
+# --skip-git-repo-check: the preflight sends only a dummy "MODEL_OK" probe (no repo
+# content), so Codex's trusted-directory guard would only produce false "model
+# unavailable" failures when the CWD is not a git repo. The real review dispatch
+# (runner.md R4) runs with -C "${REPO_ROOT}" and keeps full git-based mutation safety.
 timeout 60 codex exec -m ${CANDIDATE_MODEL} \
   -s ${PREFLIGHT_SANDBOX} \
   -c approval_policy=never \
+  --skip-git-repo-check \
   -o "${TMP_ROOT}/advreview-preflight-${REVIEW_ID}.txt" \
   "Reply with exactly the text MODEL_OK and nothing else" \
   2>"${TMP_ROOT}/advreview-preflight-err-${REVIEW_ID}.txt"
@@ -820,13 +841,25 @@ Requested model "${ORIGINAL_MODEL}" is unavailable. Falling back to "${REVIEWER_
 - Warn: `Model "${CANDIDATE_MODEL}" timed out during preflight. Trying next model.`
 - Try the next model in the chain.
 
+### Environmental Block vs Model Failure
+
+Before treating a failure as "model unavailable," inspect stderr. A `codex exec` call can fail for reasons that have nothing to do with the model — most commonly the trusted-directory guard. If stderr contains `not inside a trusted directory` or `skip-git-repo-check`, this is an environmental block, not a model problem. Stop immediately (do not exhaust the fallback chain) with:
+
+```text
+Codex refused to run: the working directory is not a trusted git directory.
+This is not a model or quota problem. The preflight already passes --skip-git-repo-check;
+if you still hit this, the review dispatch is running outside "${REPO_ROOT}" — ensure the
+audit is invoked from inside your git repository.
+```
+
 ### All Models Exhausted
 
-If every model in `MODEL_FALLBACK_CHAIN` fails, stop with:
+If every model in `MODEL_FALLBACK_CHAIN` fails for genuine model reasons (model-not-found, quota, network), stop with:
 
 ```text
 No reviewer model is available through Codex CLI. Tried: ${MODEL_FALLBACK_CHAIN}.
 Check auth (codex login), quota, or API key. You can also specify a model explicitly: reviewer:<model-name>
+(If stderr mentioned a "trusted directory", the cause is the working directory, not the model — see above.)
 ```
 
 ### Auth vs Model Failure

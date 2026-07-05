@@ -235,6 +235,7 @@ Signals include:
 - sandbox or `bwrap` failure;
 - auth, login, token, quota, rate-limit, or model-not-found errors;
 - trust/repository confirmation prompt that cannot be answered;
+- `not inside a trusted directory` / `--skip-git-repo-check` refusal (the dispatch should run with `-C "${REPO_ROOT}"`; if this still appears, `REPO_ROOT` is not a git repo — report it as environmental, do not invent findings);
 - "command not found" for required tools;
 - no access to repository content;
 - repeated timeout or cancellation text;

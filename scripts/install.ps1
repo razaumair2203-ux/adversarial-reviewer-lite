@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$SkillName = "adversarial-reviewer-lite"
+$SkillName = "codex-adversarial-review-lite"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Resolve-Path (Join-Path $ScriptDir "..")
 $SourceDir = Join-Path $RepoRoot "skills\$SkillName"
@@ -13,7 +13,7 @@ $SourceSkill = Join-Path $SourceDir "SKILL.md"
 $DestSkill = Join-Path $DestDir "SKILL.md"
 
 if (-not (Test-Path -LiteralPath $SourceSkill)) {
-  Write-Error "Could not find $SourceSkill. Run this script from a complete adversarial-reviewer-lite checkout."
+  Write-Error "Could not find $SourceSkill. Run this script from a complete codex-adversarial-review-lite checkout."
 }
 
 if ((Split-Path -Leaf $DestDir) -ne $SkillName) {
@@ -35,7 +35,7 @@ Write-Host "Installed $SkillName to:"
 Write-Host $DestDir
 Write-Host ""
 Write-Host "Restart Claude Code if it was already open, then run:"
-Write-Host "/adversarial-reviewer-lite audit"
+Write-Host "/codex-adversarial-review-lite audit"
 Write-Host ""
 Write-Host "Optional habit reminder:"
 Write-Host "Copy snippets/claude-md-reminder.md into your project's CLAUDE.md."

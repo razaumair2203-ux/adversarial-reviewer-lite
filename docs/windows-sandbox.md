@@ -1,6 +1,6 @@
 ﻿# Windows Sandbox Notes
 
-Adversarial Reviewer Lite v1 is Windows-first because many agentic coding tutorials assume Linux-style sandboxing, while many new users are working from Windows machines.
+Codex Adversarial Review - Lite v1 is Windows-first because many agentic coding tutorials assume Linux-style sandboxing, while many new users are working from Windows machines.
 
 ## The Problem
 
@@ -14,9 +14,9 @@ sandbox setup failed
 permission denied
 ```
 
-## Adversarial Reviewer Lite's Default
+## Codex Adversarial Review - Lite's Default
 
-On Windows, Adversarial Reviewer Lite v1 defaults to:
+On Windows, Codex Adversarial Review - Lite v1 defaults to:
 
 ```text
 sandbox:danger-full-access

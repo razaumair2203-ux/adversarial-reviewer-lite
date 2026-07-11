@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SKILL_NAME="adversarial-reviewer-lite"
+SKILL_NAME="codex-adversarial-review-lite"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SOURCE_DIR="${REPO_ROOT}/skills/${SKILL_NAME}"
@@ -10,7 +10,7 @@ DEST_DIR="${SKILLS_ROOT}/${SKILL_NAME}"
 
 if [ ! -f "${SOURCE_DIR}/SKILL.md" ]; then
   echo "Could not find ${SOURCE_DIR}/SKILL.md"
-  echo "Run this script from a complete adversarial-reviewer-lite checkout."
+  echo "Run this script from a complete codex-adversarial-review-lite checkout."
   exit 1
 fi
 
@@ -40,7 +40,7 @@ echo "Installed ${SKILL_NAME} to:"
 echo "${DEST_DIR}"
 echo ""
 echo "Restart Claude Code if it was already open, then run:"
-echo "/adversarial-reviewer-lite audit"
+echo "/codex-adversarial-review-lite audit"
 echo ""
 echo "Optional habit reminder:"
 echo "Copy snippets/claude-md-reminder.md into your project's CLAUDE.md."

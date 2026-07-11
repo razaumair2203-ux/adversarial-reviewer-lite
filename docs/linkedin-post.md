@@ -8,7 +8,7 @@ It invents APIs that do not exist. It expands scope beyond what you asked. It sa
 
 This hits hardest for people jumping on the vibe coding wave without a traditional software background. You are building real things, but you do not always know which AI-generated claim to trust and which one to verify.
 
-After studying contemporary research and existing solutions, I built **Adversarial Reviewer Lite** — a Claude Code skill that has your code reviewed adversarially by a separate, independent agent before you trust it.
+After studying contemporary research and existing solutions, I built **Codex Adversarial Review - Lite** — a Claude Code skill that has your code reviewed adversarially by a separate, independent agent before you trust it.
 
 **Why a separate agent? Why not just ask the same AI to review itself?**
 
@@ -24,7 +24,7 @@ This is a Claude Code skill — a structured contract between two agents. For v1
 
 1. The builder builds your code or plan.
 2. The builder helps you define test specifications — what should work, what should not, what edge cases matter.
-3. You invoke `/adversarial-reviewer-lite audit`.
+3. You invoke `/codex-adversarial-review-lite audit`.
 4. The builder passes the code, plan, and test specification contract to the independent reviewer.
 5. The reviewer (Codex) reviews adversarially. It does not touch any of your files. It passes findings back to the builder.
 6. The builder assesses and validates each finding — it does not blindly obey the reviewer. It pushes back when findings are wrong. Still does not touch any artifact.
@@ -40,20 +40,20 @@ We also had to build cross-platform workarounds. Many agentic coding tools assum
 **Install is straightforward:**
 
 ```
-git clone https://github.com/razaumair2203-ux/adversarial-reviewer-lite.git
-cd adversarial-reviewer-lite
+git clone https://github.com/razaumair2203-ux/codex-adversarial-review-lite.git
+cd codex-adversarial-review-lite
 bash scripts/install.sh
 ```
 
 Then from Claude Code:
 
 ```
-/adversarial-reviewer-lite audit
+/codex-adversarial-review-lite audit
 ```
 
 That is it. Build with Claude. Before you trust the change, audit it.
 
-**Repo:** https://github.com/razaumair2203-ux/adversarial-reviewer-lite
+**Repo:** https://github.com/razaumair2203-ux/codex-adversarial-review-lite
 
 If you are building with Claude Code or working with agentic coding workflows, I would genuinely love your feedback — what works, what is missing, what would make this more useful for your workflow. Open an issue or reach out.
 

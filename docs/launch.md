@@ -3,7 +3,7 @@
 ## Short Post
 
 ```text
-I built Adversarial Reviewer Lite: a Claude Code skill that asks Codex CLI to review Claude's code before you trust it.
+I built Codex Adversarial Review - Lite: a Claude Code skill that asks Codex CLI to review Claude's code before you trust it.
 
 It is intentionally small:
 - Claude Code = builder
@@ -14,7 +14,7 @@ It is intentionally small:
 - user sign-off before code changes
 
 Build with Claude. Before you trust it, run:
-/adversarial-reviewer-lite audit
+/codex-adversarial-review-lite audit
 ```
 
 ## Hacker News
@@ -53,7 +53,7 @@ Outline:
 - Reviewer findings are not commands; they need builder verification.
 - Platform sandbox limitations need pragmatic handling.
 - The skill packages the boring safety steps people skip manually.
-- Demo: run `/adversarial-reviewer-lite audit`.
+- Demo: run `/codex-adversarial-review-lite audit`.
 
 ## LinkedIn
 

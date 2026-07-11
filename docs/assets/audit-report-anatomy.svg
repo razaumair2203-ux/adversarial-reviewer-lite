@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
-  <title id="title">Adversarial Reviewer Lite audit report anatomy</title>
+  <title id="title">Codex Adversarial Review - Lite audit report anatomy</title>
   <desc id="desc">A visual map of the audit report sections: metadata, summary, findings, builder assessment, verification, decision log, and glossary.</desc>
   <defs>
     <linearGradient id="anatomy-bg" x1="0" y1="0" x2="1" y2="1">

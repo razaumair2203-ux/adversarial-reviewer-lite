@@ -1,6 +1,6 @@
 ﻿# Safety Model
 
-Adversarial Reviewer Lite is a workflow guardrail, not a hard security sandbox.
+Codex Adversarial Review - Lite is a workflow guardrail, not a hard security sandbox.
 
 ## Trust Boundaries
 
@@ -16,7 +16,7 @@ The workflow assumes:
 
 ## Controls
 
-Adversarial Reviewer Lite includes:
+Codex Adversarial Review - Lite includes:
 
 - local tool preflight for Git, Codex CLI, timeout, grep/tail, and SHA-256 hashing;
 - setup-needed prompt when prerequisites are missing, before any external reviewer dispatch;
@@ -38,7 +38,7 @@ Adversarial Reviewer Lite includes:
 
 ## Known Limits
 
-Adversarial Reviewer Lite does not:
+Codex Adversarial Review - Lite does not:
 
 - prove code correctness;
 - replace tests;
@@ -54,7 +54,7 @@ Adversarial Reviewer Lite does not:
 Use `audit` mode for first-time or high-risk reviews:
 
 ```text
-/adversarial-reviewer-lite audit
+/codex-adversarial-review-lite audit
 ```
 
 Do not rely on automatic prompting. Invoke the skill intentionally after an agentic coding change or before approving a risky plan.
@@ -66,7 +66,7 @@ For sensitive work, commit or stash first so mutation detection has a clean base
 For better audits, provide focused test expectations:
 
 ```text
-/adversarial-reviewer-lite audit test-spec:docs/change-tests.md test-data:fixtures/change-cases.json
+/codex-adversarial-review-lite audit test-spec:docs/change-tests.md test-data:fixtures/change-cases.json
 ```
 
 Keep them exhaustive for the requested change, but avoid unrelated scenarios that widen scope.

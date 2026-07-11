@@ -1,6 +1,6 @@
-﻿# Adversarial Reviewer Lite Codex Runner
+﻿# Codex Adversarial Review - Lite Codex Runner
 
-This runner is intentionally backend-specific. Adversarial Reviewer Lite v1 is packaged for Claude Code as builder and Codex CLI as reviewer; the generic `builder` and `reviewer` terms are kept only so future versions can stay portable.
+This runner is intentionally backend-specific. Codex Adversarial Review - Lite v1 is packaged for Claude Code as builder and Codex CLI as reviewer; the generic `builder` and `reviewer` terms are kept only so future versions can stay portable.
 
 The main skill dispatches this runner in a short-lived subagent. The runner launches one Codex CLI review, validates the result, classifies review quality, and writes a JSON summary. It does not apply fixes.
 

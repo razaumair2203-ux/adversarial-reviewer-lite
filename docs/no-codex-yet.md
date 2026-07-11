@@ -1,6 +1,6 @@
 # No Codex Yet?
 
-Adversarial Reviewer Lite v1 uses Codex CLI as the independent reviewer. That is the real workflow. If you do not have Codex installed yet, you can still try the idea manually before committing to the setup.
+Codex Adversarial Review - Lite v1 uses Codex CLI as the independent reviewer. That is the real workflow. If you do not have Codex installed yet, you can still try the idea manually before committing to the setup.
 
 ## Install Codex CLI
 
@@ -13,7 +13,7 @@ codex doctor --summary
 Then install this skill and run:
 
 ```text
-/adversarial-reviewer-lite audit
+/codex-adversarial-review-lite audit
 ```
 
 ## Manual Trial Prompt

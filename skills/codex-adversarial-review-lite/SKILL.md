@@ -1,14 +1,14 @@
 ﻿---
-name: adversarial-reviewer-lite
-description: Adversarial Reviewer Lite: user-invoked audit workflow for Claude Code users who want Codex CLI to independently review AI-generated code, plans, test expectations, and scope before fixes are applied. Cross-platform (Windows, macOS, Linux, WSL). Use only when the user explicitly invokes audit or selftest.
+name: codex-adversarial-review-lite
+description: Codex Adversarial Review - Lite: user-invoked audit workflow for Claude Code users who want Codex CLI to independently review AI-generated code, plans, test expectations, and scope before fixes are applied. Cross-platform (Windows, macOS, Linux, WSL). Use only when the user explicitly invokes audit or selftest.
 user_invocable: true
 disable-model-invocation: true
 argument-hint: "audit [path] [reviewer:<model>] [test-spec:<path>] [test-data:<path>] [rubric:<path>] [strict] | selftest"
 ---
 
-# Adversarial Reviewer Lite
+# Codex Adversarial Review - Lite
 
-Adversarial Reviewer Lite is a Claude Code skill. It asks Codex CLI to independently audit Claude Code's plan, code changes, and focused test expectations before the builder trusts the work or applies fixes.
+Codex Adversarial Review - Lite is a Claude Code skill. It asks Codex CLI to independently audit Claude Code's plan, code changes, and focused test expectations before the builder trusts the work or applies fixes.
 
 Tested setup:
 
@@ -25,16 +25,16 @@ The `builder`, `reviewer`, and `review_backend` terms keep the design portable l
 
 Recommended v1 user invocation:
 
-- `/adversarial-reviewer-lite audit` - one reviewer pass, builder validates findings, report/HTML option is presented, user signs off before fixes.
-- `/adversarial-reviewer-lite selftest` - validate that all prerequisites, paths, model access, and platform behavior work on this machine. No repo content is sent. Run this first on any new machine.
+- `/codex-adversarial-review-lite audit` - one reviewer pass, builder validates findings, report/HTML option is presented, user signs off before fixes.
+- `/codex-adversarial-review-lite selftest` - validate that all prerequisites, paths, model access, and platform behavior work on this machine. No repo content is sent. Run this first on any new machine.
 
 Advanced scope hints:
 
-- `/adversarial-reviewer-lite audit <file-path>` - audit a specific file or plan.
-- `/adversarial-reviewer-lite audit test-spec:<path>` - audit with focused test expectations.
-- `/adversarial-reviewer-lite audit test-data:<path>` - audit with focused sample data or fixtures.
-- `/adversarial-reviewer-lite audit rubric:<path>` - audit against a domain checklist; the reviewer must report pass/fail per checklist item.
-- `/adversarial-reviewer-lite audit strict rubric:<path>` - high-consequence mode: requires a rubric, floor-gates every change for human review, disables autonomous fixing.
+- `/codex-adversarial-review-lite audit <file-path>` - audit a specific file or plan.
+- `/codex-adversarial-review-lite audit test-spec:<path>` - audit with focused test expectations.
+- `/codex-adversarial-review-lite audit test-data:<path>` - audit with focused sample data or fixtures.
+- `/codex-adversarial-review-lite audit rubric:<path>` - audit against a domain checklist; the reviewer must report pass/fail per checklist item.
+- `/codex-adversarial-review-lite audit strict rubric:<path>` - high-consequence mode: requires a rubric, floor-gates every change for human review, disables autonomous fixing.
 
 Options:
 
@@ -55,7 +55,7 @@ Convenience aliases:
 - Bare `audit` sets audit mode.
 - Bare `selftest` sets selftest mode.
 - Bare `strict` sets strict mode (only meaningful with `audit`).
-- If neither `audit` nor `selftest` is present, stop and ask the user to invoke `/adversarial-reviewer-lite audit ...` or `/adversarial-reviewer-lite selftest`.
+- If neither `audit` nor `selftest` is present, stop and ask the user to invoke `/codex-adversarial-review-lite audit ...` or `/codex-adversarial-review-lite selftest`.
 
 ## Claude Code Runtime Notes
 
@@ -86,7 +86,7 @@ After resolving `TMP_ROOT` in Step 5, immediately verify the directory is access
 mkdir -p "${TMP_ROOT}" && [ -d "${TMP_ROOT}" ] && echo "TMP_ROOT OK: ${TMP_ROOT}" || echo "TMP_ROOT FAILED"
 ```
 
-When using Claude Code's Write or Read tools to access files in `TMP_ROOT`, use the platform-native absolute path (e.g., `C:\Users\DELL\AppData\Local\Temp\adversarial-reviewer-lite\...`) rather than the Git Bash `/tmp/...` path.
+When using Claude Code's Write or Read tools to access files in `TMP_ROOT`, use the platform-native absolute path (e.g., `C:\Users\DELL\AppData\Local\Temp\codex-adversarial-review-lite\...`) rather than the Git Bash `/tmp/...` path.
 
 ### Hash Verification
 
@@ -127,7 +127,7 @@ This is a two-phase check. Phase 1 uses bash to verify the temp directory works.
 **Phase 1 — bash write/read:**
 
 ```bash
-TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/codex-adversarial-review-lite"
 mkdir -p "${TMP_ROOT}"
 
 SELFTEST_FILE="${TMP_ROOT}/selftest-probe.txt"
@@ -155,7 +155,7 @@ Clean up: delete the probe file via bash using the bash-resolvable path.
 ### ST-3: Hash Tool Verification
 
 ```bash
-TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/codex-adversarial-review-lite"
 HASH_CMD=""
 if command -v sha256sum >/dev/null 2>&1; then
   HASH_CMD="sha256sum"
@@ -192,7 +192,7 @@ else
 fi
 ```
 
-If not in a git repo, stop: "Self-test failed at ST-4: Not inside a git repository. Adversarial Reviewer Lite requires git for mutation detection."
+If not in a git repo, stop: "Self-test failed at ST-4: Not inside a git repository. Codex Adversarial Review - Lite requires git for mutation detection."
 
 ### ST-5: Codex Health Check
 
@@ -234,7 +234,7 @@ The builder must substitute the actual `MODEL_FALLBACK_CHAIN` from Step 1 into t
 **Important**: `codex exec` is non-interactive — it has no user to approve commands. Always pass `-c approval_policy=never` to prevent hangs. The sandbox flag (`-s`) still constrains what the reviewer can do. Use `-o file` to capture the agent's last message to a file.
 
 ```bash
-TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/codex-adversarial-review-lite"
 SELFTEST_FOUND_MODEL=""
 
 for MODEL in gpt-5.5 o3 gpt-4.1 gpt-4o; do
@@ -319,7 +319,7 @@ This check is non-blocking. Report the result but do not stop. The audit flow al
 After all checks complete, present a summary:
 
 ```text
-## Adversarial Reviewer Lite — Self-Test Results
+## Codex Adversarial Review - Lite — Self-Test Results
 
 | # | Check | Result |
 |---|---|---|
@@ -391,7 +391,7 @@ Set:
 If `REVIEW_BACKEND` is anything other than `codex`, stop with:
 
 ```text
-Adversarial Reviewer Lite v1 only implements backend:codex. Other backends are planned but not available yet.
+Codex Adversarial Review - Lite v1 only implements backend:codex. Other backends are planned but not available yet.
 ```
 
 `strict` and `rubric:<path>` apply to audit mode only. In selftest mode, ignore them with a one-line note ("strict/rubric options are ignored during selftest") and continue — the selftest must never be blocked by audit-only options.
@@ -401,7 +401,7 @@ If `AUDIT_MODE` is true, `STRICT_MODE` is true, and `RUBRIC_PATHS` is empty, sto
 ```text
 Strict mode requires a rubric. Provide a domain checklist:
 
-  /adversarial-reviewer-lite audit strict rubric:<path-to-checklist>
+  /codex-adversarial-review-lite audit strict rubric:<path-to-checklist>
 
 Strict mode exists for high-consequence repos where the review must be checkable against named rules, not general model judgment. Without a rubric, strict mode would only add friction without adding accuracy.
 ```
@@ -414,9 +414,9 @@ When `STRICT_MODE` is true, apply these overrides for the rest of the audit:
 If the user did not explicitly invoke `audit` or `selftest`, stop with:
 
 ```text
-Adversarial Reviewer Lite v1 requires an explicit mode. Please invoke:
-- /adversarial-reviewer-lite audit ... — to run a full review
-- /adversarial-reviewer-lite selftest — to validate your setup
+Codex Adversarial Review - Lite v1 requires an explicit mode. Please invoke:
+- /codex-adversarial-review-lite audit ... — to run a full review
+- /codex-adversarial-review-lite selftest — to validate your setup
 ```
 
 If `SELFTEST_MODE` is true, proceed to Step 2 (preflight), then after Step 2 completes successfully, jump to Step 0 (Self-Test Flow) instead of continuing to Step 3.
@@ -427,7 +427,7 @@ Before any Git or reviewer work, verify the shell environment is bash-compatible
 
 ```bash
 if [ -z "${BASH_VERSION:-}" ]; then
-  echo "Adversarial Reviewer Lite requires a bash-compatible shell (Git Bash or WSL on Windows). The current shell does not appear to be bash. Please configure Claude Code to use Git Bash or WSL, then re-run /adversarial-reviewer-lite audit."
+  echo "Codex Adversarial Review - Lite requires a bash-compatible shell (Git Bash or WSL on Windows). The current shell does not appear to be bash. Please configure Claude Code to use Git Bash or WSL, then re-run /codex-adversarial-review-lite audit."
   exit 1
 fi
 ```
@@ -495,7 +495,7 @@ esac
 Show the user the complete missing list in `OPERATOR_LANGUAGE` and ask once:
 
 ```text
-Adversarial Reviewer Lite setup needed. The following prerequisites are missing:
+Codex Adversarial Review - Lite setup needed. The following prerequisites are missing:
 
 <list from MISSING_ADVREVIEW_PREREQS>
 
@@ -572,7 +572,7 @@ fi
 if [ -n "${MISSING_AFTER_INSTALL}" ]; then
   printf '%s\n' "Some prerequisites could not be installed:"
   printf '%s\n' "${MISSING_AFTER_INSTALL}"
-  printf '%s\n' "Fix the remaining items manually, restart Claude Code if PATH changed, then re-run /adversarial-reviewer-lite audit."
+  printf '%s\n' "Fix the remaining items manually, restart Claude Code if PATH changed, then re-run /codex-adversarial-review-lite audit."
   exit 1
 fi
 ```
@@ -624,7 +624,7 @@ if [ "${CODEX_AUTH_FAILED}" = "1" ]; then
     if echo "${DOCTOR_OUTPUT}" | grep -q '✓ auth'; then
       echo "Codex auth now verified."
     else
-      echo "Codex auth still failing. Run codex doctor --summary in your terminal to see the full error, fix auth or config issues, then re-run /adversarial-reviewer-lite audit."
+      echo "Codex auth still failing. Run codex doctor --summary in your terminal to see the full error, fix auth or config issues, then re-run /codex-adversarial-review-lite audit."
       exit 1
     fi
   fi
@@ -641,7 +641,7 @@ Capture `REPO_ROOT`:
 git rev-parse --show-toplevel
 ```
 
-If not inside a Git worktree, stop. Adversarial Reviewer Lite needs Git snapshots for mutation detection.
+If not inside a Git worktree, stop. Codex Adversarial Review - Lite needs Git snapshots for mutation detection.
 
 Detect the platform:
 
@@ -666,7 +666,7 @@ On Windows (`PLATFORM=windows`):
 - emit:
 
 ```text
-Windows detected. Adversarial Reviewer Lite set reviewer sandbox to danger-full-access because bwrap is usually unavailable on Windows. The reviewer is instructed not to edit files, and Adversarial Reviewer Lite will compare Git status plus dirty-file hashes before any fixes are applied. For best protection, commit or stash your work before running the audit so mutation detection has a clean baseline. Use sandbox:inherit only if your Codex CLI config supports a safer Windows-native mode.
+Windows detected. Codex Adversarial Review - Lite set reviewer sandbox to danger-full-access because bwrap is usually unavailable on Windows. The reviewer is instructed not to edit files, and Codex Adversarial Review - Lite will compare Git status plus dirty-file hashes before any fixes are applied. For best protection, commit or stash your work before running the audit so mutation detection has a clean baseline. Use sandbox:inherit only if your Codex CLI config supports a safer Windows-native mode.
 ```
 
 On WSL (`PLATFORM=wsl`):
@@ -692,7 +692,7 @@ If the user declines, stop.
 
 ## Step 4: Prepare Review Scope
 
-V1 is audit-first and user-invoked. Do not auto-select audit mode. If the user asks for review without `audit`, stop and ask them to re-run with `/adversarial-reviewer-lite audit ...`. Plans, code diffs, and plan/implementation consistency checks are scope concepts inside audit, not separate public modes.
+V1 is audit-first and user-invoked. Do not auto-select audit mode. If the user asks for review without `audit`, stop and ask them to re-run with `/codex-adversarial-review-lite audit ...`. Plans, code diffs, and plan/implementation consistency checks are scope concepts inside audit, not separate public modes.
 
 When the audit includes a plan:
 
@@ -730,9 +730,10 @@ For the changes you want audited:
 2. Are there edge cases or inputs that must be handled? (empty values, large data, concurrent access, etc.)
 3. Are there things that must NOT happen? (data loss, unauthorized access, silent failures, etc.)
 4. Are there specific commands or checks you normally run to validate this kind of change?
+5. Are there specific rules, standards, or a checklist this change must satisfy — a compliance rule, security policy, industry standard, legal requirement? If yes, either point me to a file with `rubric:<path>`, or just list the rules here and I will write the checklist file for you.
 ```
 
-Use the user's answers to build a focused test expectation summary. Present the summary back to the user for approval before including it in the reviewer prompt. If the user declines to provide test expectations, proceed with the audit but note in the reviewer prompt that no focused test expectations were available.
+Use the user's answers to build a focused test expectation summary. If the user answered question 5 with rules but no file, record those rules in conversation state as `INLINE_RUBRIC_ITEMS` (one checklist item per line) — the user should not have to pre-author a rubric file to use one. `TMP_ROOT` and `REVIEW_ID` do not exist yet at this step (they are created in Step 5); do not write any file here. Present the summary (and the rubric items, if built) back to the user for approval before including them in the reviewer prompt. If `INLINE_RUBRIC_ITEMS` is non-empty, treat it as equivalent to `RUBRIC_PATHS` being non-empty for the rest of this audit (floor-detection nudges, Step 7 rubric injection, Step 11/12 rubric-coverage checks); in Step 7, write `INLINE_RUBRIC_ITEMS` to `${TMP_ROOT}/advreview-rubric-${REVIEW_ID}.md` before building the rubric block, now that those variables exist. If the user declines to provide test expectations or rubric items, proceed with the audit but note in the reviewer prompt that no focused test expectations were available.
 
 When collecting content, avoid ignored files unless the user explicitly asks for them. Warn if the requested scope appears to include secrets, credentials, or private customer data.
 
@@ -762,6 +763,21 @@ Map the matches to human-readable labels and set `FLOOR_CATEGORIES` (e.g. `auth/
 
 If no signal matches and the builder sees no floor-category content, set `FLOOR_CATEGORIES` empty — the audit proceeds exactly as before.
 
+If `FLOOR_CATEGORIES` is non-empty and neither `RUBRIC_PATHS` nor `INLINE_RUBRIC_ITEMS` is set yet, tell the user now — before dispatch, while a rubric can still be added to this audit — that two tools exist for exactly this situation:
+
+```text
+This change touches: <FLOOR_CATEGORIES>. Two things can help here:
+
+- rubric: if there are specific rules this must satisfy (a compliance rule, security policy, standard), tell me and I will check the code against them item by item — or point me to a file with rubric:<path>.
+- strict mode: add "strict" to future audits on this repo to always require a rubric and always pause for your review on changes like this one, without having to remember the flags.
+
+Neither is required to continue. Reply with rubric items, a rubric:<path>, or "skip" to continue without one.
+```
+
+Wait for the user's reply before proceeding to Step 5. On "skip" or no rubric offered, continue with `RUBRIC_PATHS` empty exactly as before — this nudge fires once per audit and never blocks. If the user provides rubric items inline, fold them into `INLINE_RUBRIC_ITEMS` alongside anything captured in the test-spec question above.
+
+If `STRICT_MODE` is already true or `FLOOR_CATEGORIES` is empty, skip this nudge entirely.
+
 ## Step 5: Mutation Snapshot Before Review
 
 Create a unique `REVIEW_ID` using this format:
@@ -781,7 +797,7 @@ Use only digits and one hyphen. Do not use spaces, slashes, colons, or user-prov
 Choose `TMP_ROOT`, outside the repo and outside any push path:
 
 ```bash
-TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/codex-adversarial-review-lite"
 mkdir -p "${TMP_ROOT}"
 ```
 
@@ -796,14 +812,14 @@ All examples below use `${TMP_ROOT}`.
 **Important**: `REVIEW_ID` and `TMP_ROOT` must be redeclared in every subsequent Bash tool call — see "Claude Code Runtime Notes" above. After creating `TMP_ROOT`, verify it exists and note the platform-native path for use with non-bash tools (Write, Read):
 
 ```bash
-TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/adversarial-reviewer-lite"
+TMP_ROOT="${TMPDIR:-${TEMP:-${TMP:-/tmp}}}/codex-adversarial-review-lite"
 mkdir -p "${TMP_ROOT}"
 # Resolve and display the native path for non-bash tool access
 cd "${TMP_ROOT}" && pwd -W 2>/dev/null || pwd
 cd -
 ```
 
-On Git Bash, `pwd -W` returns the Windows-native path (e.g., `C:\Users\DELL\AppData\Local\Temp\adversarial-reviewer-lite`). Save this for Write/Read tool calls. On Unix/WSL, `pwd -W` fails silently and the fallback `pwd` returns the correct path.
+On Git Bash, `pwd -W` returns the Windows-native path (e.g., `C:\Users\DELL\AppData\Local\Temp\codex-adversarial-review-lite`). Save this for Write/Read tool calls. On Unix/WSL, `pwd -W` fails silently and the fallback `pwd` returns the correct path.
 
 Capture repo status:
 
@@ -971,7 +987,7 @@ When auditing test specs/test data, ask for:
 - validation commands that should be run before claiming success;
 - tests that are too broad, too weak, or outside the user's scope.
 
-When a rubric is provided (`RUBRIC_PATHS` non-empty), append a rubric block to the prompt. A rubric converts "does this look fine to a smart generalist" into "does this satisfy these named rules" — it is how domain requirements the model may not reliably know (regulatory deadlines, eligibility criteria, legal evidentiary rules) become checkable:
+When a rubric is provided (`RUBRIC_PATHS` non-empty, or `INLINE_RUBRIC_ITEMS` was captured in Step 4), append a rubric block to the prompt. A rubric converts "does this look fine to a smart generalist" into "does this satisfy these named rules" — it is how domain requirements the model may not reliably know (regulatory deadlines, eligibility criteria, legal evidentiary rules) become checkable. If `INLINE_RUBRIC_ITEMS` is non-empty, write it to `${TMP_ROOT}/advreview-rubric-${REVIEW_ID}.md` (one item per line) now that `TMP_ROOT`/`REVIEW_ID` exist, and treat that file as part of `RUBRIC_PATHS` for this step onward.
 
 ```text
 # Rubric
@@ -1056,7 +1072,7 @@ Write the complete reviewer prompt body to:
 ${TMP_ROOT}/advreview-body-${REVIEW_ID}.md
 ```
 
-**Use Claude Code's Write tool** to create this file, not a bash heredoc. The prompt body contains markdown with backticks, asterisks, brackets, and other characters that break shell quoting. The Write tool accepts arbitrary content safely. Use the platform-native path resolved in Step 5 (e.g., `C:\Users\...\Temp\adversarial-reviewer-lite\advreview-body-<id>.md` on Windows). Note: the Write tool requires the file to have been Read first if it already exists — for a new file, Write works directly.
+**Use Claude Code's Write tool** to create this file, not a bash heredoc. The prompt body contains markdown with backticks, asterisks, brackets, and other characters that break shell quoting. The Write tool accepts arbitrary content safely. Use the platform-native path resolved in Step 5 (e.g., `C:\Users\...\Temp\codex-adversarial-review-lite\advreview-body-<id>.md` on Windows). Note: the Write tool requires the file to have been Read first if it already exists — for a new file, Write works directly.
 
 This file is the `PROMPT_BODY_PATH` passed to the runner. Do not rely on the runner to infer or rebuild the main prompt body.
 
@@ -1087,9 +1103,9 @@ This hash step must happen after writing `advreview-body-${REVIEW_ID}.md` and be
 
 Resolve the runner spec:
 
-1. `skills/adversarial-reviewer-lite/references/runner.md` relative to this skill.
-2. `${REPO_ROOT}/adversarial-reviewer-lite/skills/adversarial-reviewer-lite/references/runner.md`.
-3. `~/.claude/skills/adversarial-reviewer-lite/references/runner.md`.
+1. `skills/codex-adversarial-review-lite/references/runner.md` relative to this skill.
+2. `${REPO_ROOT}/codex-adversarial-review-lite/skills/codex-adversarial-review-lite/references/runner.md`.
+3. `~/.claude/skills/codex-adversarial-review-lite/references/runner.md`.
 
 Dispatch a short-lived subagent synchronously in the foreground:
 
@@ -1182,7 +1198,7 @@ Use this dispatch table before showing or acting on review content:
 Before any fix, show the reviewer output verbatim:
 
 ```text
-## Adversarial Reviewer Lite - Audit (reviewer: <model>)
+## Codex Adversarial Review - Lite - Audit (reviewer: <model>)
 
 <verbatim review>
 ```
@@ -1410,6 +1426,7 @@ On launch failure, infrastructure failure, or mutation-detected abort, leave tem
 - An `APPROVED` verdict on floor-category changes (auth/permissions, money/billing, migrations/destructive data, secrets, regulatory paths) still requires human diff review before the audit is complete. Approval is not a bypass; it is one input.
 - Any rubric `[FAIL]` forces `VERDICT: REVISE`. An `APPROVED` verdict alongside a `[FAIL]` line is inconsistent and must be treated as `degraded_content`.
 - Strict mode requires a rubric, floor-gates every change, and disables autonomous fixing regardless of prior instructions.
+- Rubric and strict mode must not be silent features: when a change hits a floor category and no rubric is set, Step 4 tells the user both exist and offers to build a rubric inline, before dispatch, while it can still be used.
 - Audit mode must present the validated report and HTML-report option before touching code.
 - Test specs and test data should be passed to the reviewer when available, exhaustive but focused on the requested scope.
 - Tool-mechanic findings need empirical verification when practical.

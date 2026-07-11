@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 echo ""
-echo "Adversarial Reviewer Lite reminder:"
+echo "Codex Adversarial Review - Lite reminder:"
 echo "Before trusting AI-generated changes, consider running:"
-echo "  /adversarial-reviewer-lite audit"
+echo "  /codex-adversarial-review-lite audit"
 echo ""

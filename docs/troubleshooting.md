@@ -2,8 +2,8 @@
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| Not sure if setup works on this machine | First-time install, new platform, or after upgrades | Run `/adversarial-reviewer-lite selftest` — it validates all prerequisites, paths, model access, and dispatch without sending repo content. |
-| `/adversarial-reviewer-lite audit` is not available | Skill folder is missing or Claude Code has not reloaded skills | Confirm `~/.claude/skills/adversarial-reviewer-lite/SKILL.md` exists, then restart Claude Code. |
+| Not sure if setup works on this machine | First-time install, new platform, or after upgrades | Run `/codex-adversarial-review-lite selftest` — it validates all prerequisites, paths, model access, and dispatch without sending repo content. |
+| `/codex-adversarial-review-lite audit` is not available | Skill folder is missing or Claude Code has not reloaded skills | Confirm `~/.claude/skills/codex-adversarial-review-lite/SKILL.md` exists, then restart Claude Code. |
 | Skill starts but says Codex is missing | Codex CLI is not installed or not on `PATH` | Run `npm install -g @openai/codex`, then reopen Claude Code and run `codex --version`. |
 | Codex health check fails | Not logged in, bad config, proxy/network issue, or broken Codex install | Run `codex login` and `codex doctor --summary` in the same shell Claude Code uses. |
 | Reviewer model unavailable | Your Codex account cannot use the default model | The skill auto-tries fallback models (gpt-5.5 -> o3 -> gpt-4.1 -> gpt-4o). If all fail, run `codex login` to check auth, or specify a model explicitly: `reviewer:<model-you-have>`. **Note:** if the stderr mentions a "trusted directory", the cause is the working directory, not the model — see the next row. |

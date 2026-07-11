@@ -5,13 +5,13 @@
 Suggested repo name:
 
 ```text
-adversarial-reviewer-lite
+codex-adversarial-review-lite
 ```
 
 Suggested GitHub description:
 
 ```text
-Adversarial Reviewer Lite — Claude Code skill for independent AI code review using Codex CLI. Cross-platform (Windows, macOS, Linux, WSL) with platform-aware defaults.
+Codex Adversarial Review - Lite — Claude Code skill for independent AI code review using Codex CLI. Cross-platform (Windows, macOS, Linux, WSL) with platform-aware defaults.
 ```
 
 Suggested topics:
@@ -31,10 +31,10 @@ ai-safety
 
 ## Before Publishing
 
-- Confirm `/adversarial-reviewer-lite audit` appears in README and docs.
+- Confirm `/codex-adversarial-review-lite audit` appears in README and docs.
 - Run `scripts/install.sh` from Git Bash or macOS/Linux.
 - Run `scripts/install.ps1` from PowerShell.
-- Confirm `~/.claude/skills/adversarial-reviewer-lite/SKILL.md` exists after install.
+- Confirm `~/.claude/skills/codex-adversarial-review-lite/SKILL.md` exists after install.
 - Confirm the README preview image renders.
 - Confirm no private paths, repo URLs, API keys, tokens, or customer data are present.
 - Confirm sample audit output and HTML report are generic.

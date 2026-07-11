@@ -2,7 +2,23 @@
 
 ## Unreleased
 
+### Changed
+- **Renamed to Codex Adversarial Review - Lite.** The repo, skill folder, and slash
+  command move from `adversarial-reviewer-lite` / `/adversarial-reviewer-lite` to
+  `codex-adversarial-review-lite` / `/codex-adversarial-review-lite`. The old name gave
+  no signal about which model builds and which audits; the new one states it plainly
+  (Claude builds, Codex audits) and pairs cleanly with the sibling
+  `claude-adversarial-review-lite` (Codex builds, Claude audits) instead of colliding
+  with it in a file listing. Internal temp-file prefixes (`advreview-*`) are unchanged.
+
 ### Added
+- **Rubric and strict-mode discoverability.** Both were previously opt-in-only —
+  invisible unless you already knew the flag existed. Step 4 now asks about a domain
+  checklist alongside the existing test-spec question, can write one from your answers
+  on the spot (no pre-authored file required), and — when a change hits a floor
+  category with no rubric set — tells you both `rubric:<path>` and `strict` exist,
+  before dispatch, while a rubric can still be added to that audit. Fires once per
+  audit, never blocks.
 - **Human-review floor.** An `APPROVED` verdict is no longer terminal when the diff
   touches floor categories: auth/permissions, money/billing, migrations/destructive
   data operations, secrets, or regulatory-tagged paths. Step 4 detects the categories
@@ -30,7 +46,7 @@
 - **Sibling parity.** The floor/rubric/strict policy layer and the reporting procedure
   (finding evaluation, audit report, HTML structure, terminal summary fields) are now
   mirrored verbatim in the reversed sibling repo
-  [claude-adversarial-reviewer](https://github.com/razaumair2203-ux/claude-adversarial-reviewer)
+  [claude-adversarial-review-lite](https://github.com/razaumair2203-ux/claude-adversarial-review-lite)
   (Codex builds, Claude reviews). Both skills produce the same report regardless of
   which model built and which reviewed; only direction and transport differ.
 

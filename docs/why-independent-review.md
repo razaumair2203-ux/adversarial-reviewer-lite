@@ -1,6 +1,6 @@
 ﻿# Why Independent Review Helps
 
-Adversarial Reviewer Lite v1 uses a focused builder/reviewer split for agentic coding work.
+Codex Adversarial Review - Lite v1 uses a focused builder/reviewer split for agentic coding work.
 
 - The **builder** is Claude Code.
 - The **reviewer** is Codex CLI.
@@ -25,7 +25,7 @@ An internal subagent can still be useful, especially when it has separate contex
 
 A third-party reviewer backend adds operational separation. It may use a different model, CLI, prompt harness, command behavior, and error surface. That separation is not magic, but it makes correlated failure less likely.
 
-Adversarial Reviewer Lite keeps the claim modest: independent review is a pressure test, not a proof. The builder remains responsible for validating reviewer observations and presenting the report before touching code.
+Codex Adversarial Review - Lite keeps the claim modest: independent review is a pressure test, not a proof. The builder remains responsible for validating reviewer observations and presenting the report before touching code.
 
 ## Why It Can Improve Agentic Coding Work
 
@@ -59,9 +59,9 @@ The practical takeaway is modest:
 External review can reduce blind spots, but reviewer findings are suggestions to verify, not orders to obey.
 ```
 
-## What Adversarial Reviewer Lite Optimizes For
+## What Codex Adversarial Review - Lite Optimizes For
 
-Adversarial Reviewer Lite is not trying to replace CI, tests, or human review. It is a local workflow for catching common agentic coding failure modes earlier:
+Codex Adversarial Review - Lite is not trying to replace CI, tests, or human review. It is a local workflow for catching common agentic coding failure modes earlier:
 
 - hallucinated APIs;
 - overbroad changes;
@@ -83,4 +83,4 @@ Public repos and tools commonly offer parts of this pattern:
 - local CLI wrappers around model review;
 - prompt-only "review my code" workflows.
 
-Examples in the broader space include AI pair-programming CLIs, PR review tools, and repository-level review agents. Many are powerful, but they usually optimize for teams, pull requests, or autonomous coding. Adversarial Reviewer Lite's smaller angle is the local beginner workflow: Claude Code builder, Codex reviewer, platform-aware sandbox handling (Windows, macOS, Linux, WSL), focused test-spec review, dirty-file mutation detection, explicit finding verification, user sign-off in audit mode, and a simple HTML artifact that explains decisions before code changes.
+Examples in the broader space include AI pair-programming CLIs, PR review tools, and repository-level review agents. Many are powerful, but they usually optimize for teams, pull requests, or autonomous coding. Codex Adversarial Review - Lite's smaller angle is the local beginner workflow: Claude Code builder, Codex reviewer, platform-aware sandbox handling (Windows, macOS, Linux, WSL), focused test-spec review, dirty-file mutation detection, explicit finding verification, user sign-off in audit mode, and a simple HTML artifact that explains decisions before code changes.

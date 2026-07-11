@@ -245,16 +245,17 @@ The benefit is not that the skill is smarter than a human prompt. The benefit is
 4. The builder gathers a focused review bundle: plan/code diff, relevant files, test specifications, edge cases, expected behavior, known constraints, and sample test data when available.
 5. The skill captures repo mutation snapshots: Git status, dirty-file list, and dirty-file content hashes.
 6. Codex model preflight checks whether the requested reviewer model is available.
-7. The builder creates a reviewer prompt with the selected scope, focused test expectations, and strict auditor instructions.
-8. The skill hashes prompt inputs after the prompt body exists and immediately before dispatch.
-9. The Codex runner launches the reviewer with the configured model, reasoning, sandbox, and approval policy.
-10. The runner validates the review, extracts `VERDICT: APPROVED` or `VERDICT: REVISE`, and classifies review quality.
-11. The main skill compares pre/post mutation snapshots before any fixes are allowed.
-12. The reviewer output is shown verbatim.
-13. The builder evaluates each finding using the matrix: accept, reject, re-scope, or defer.
-14. The builder presents the audit report and HTML report option before touching code.
-15. Only after user sign-off may the builder apply verified accepted/re-scoped fixes.
-16. Every terminal state ends with a beginner-readable summary of findings, verification, rejected observations, structural concerns, and remaining risks.
+7. The builder creates the review contract: selected scope, focused test expectations, any rubric, and strict auditor instructions.
+8. The builder shows the review contract to the user as concise bullets before dispatch, and folds in any additions the user wants — refined into concrete, checkable items — so the reviewer only sees the contract the user approved.
+9. The skill hashes prompt inputs after the (possibly amended) prompt body exists and immediately before dispatch.
+10. The Codex runner launches the reviewer with the configured model, reasoning, sandbox, and approval policy.
+11. The runner validates the review, extracts `VERDICT: APPROVED` or `VERDICT: REVISE`, and classifies review quality.
+12. The main skill compares pre/post mutation snapshots before any fixes are allowed.
+13. The reviewer output is shown verbatim.
+14. The builder evaluates each finding using the matrix: accept, reject, re-scope, or defer.
+15. The builder presents the audit report and HTML report option before touching code.
+16. Only after user sign-off may the builder apply verified accepted/re-scoped fixes.
+17. Every terminal state ends with a beginner-readable summary of findings, verification, rejected observations, structural concerns, and remaining risks.
 
 ## What Good Looks Like
 

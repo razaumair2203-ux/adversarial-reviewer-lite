@@ -1080,7 +1080,36 @@ ${TMP_ROOT}/advreview-body-${REVIEW_ID}.md
 
 This file is the `PROMPT_BODY_PATH` passed to the runner. Do not rely on the runner to infer or rebuild the main prompt body.
 
-Now that the prompt body exists, capture prompt-input hashes before dispatch:
+### Confirm The Review Contract With The User
+
+Before dispatching to the reviewer, show the user a concise, plain-language summary of the review contract you just built — what the reviewer is about to be asked to examine. This is the user's last chance to shape the review before repo content leaves for the reviewer backend. Keep it to short bullets, not the full prompt body:
+
+```text
+Here is what I'm about to send the reviewer:
+
+Scope:
+- <files / diff / plan being reviewed>
+
+The reviewer will check for:
+- <the main risk categories from the stance, tailored to this change>
+
+Test expectations passed:
+- <one line per test-spec/test-data item, or "none provided">
+
+Rubric:
+- <one line per rubric item, or "none">
+
+Want to add or change anything before I send it? (reply "send it", or tell me what to add/adjust)
+```
+
+Handle the reply:
+
+- On "send it" / approval, continue to the hash step below.
+- If the user adds or changes anything, do not paste their words in verbatim. Improve on them: turn a vague ask ("make sure it's secure") into concrete, checkable contract items ("verify auth is enforced on the new endpoint; check the token is validated server-side, not just client-side"), fold rubric-shaped additions into `INLINE_RUBRIC_ITEMS`, and keep scope additions inside what the user actually requested. Show the refined additions back in one line each, then rewrite `advreview-body-${REVIEW_ID}.md` (via the Write tool) so the dispatched contract matches what the user approved. Re-confirm once if the change was substantial; otherwise proceed.
+
+This confirmation is required in audit mode. It is the builder-builds-the-contract, user-shapes-it, builder-refines-it handshake — the reviewer only ever sees the contract the user signed off on. Because the body may be rewritten here, the pre-dispatch hash below must be captured after this step, not before.
+
+Now that the prompt body exists and the user has confirmed the contract, capture prompt-input hashes before dispatch:
 
 ```bash
 for f in \
@@ -1426,6 +1455,7 @@ On launch failure, infrastructure failure, or mutation-detected abort, leave tem
 
 - Show reviewer output verbatim before fixes.
 - Reviewer findings are suggestions to verify, not commands to obey.
+- Before dispatch, present the review contract to the user as concise bullets and let them add or amend; the builder refines the additions into checkable items and only sends the contract the user approved.
 - Audit mode requires user sign-off before fixes.
 - An `APPROVED` verdict on floor-category changes (auth/permissions, money/billing, migrations/destructive data, secrets, regulatory paths) still requires human diff review before the audit is complete. Approval is not a bypass; it is one input.
 - Any rubric `[FAIL]` forces `VERDICT: REVISE`. An `APPROVED` verdict alongside a `[FAIL]` line is inconsistent and must be treated as `degraded_content`.

@@ -12,6 +12,17 @@
   with it in a file listing. Internal temp-file prefixes (`advreview-*`) are unchanged.
 
 ### Added
+- **Review-contract confirmation before dispatch.** After building the reviewer
+  prompt and before sending any repo content out, the skill now shows the user a
+  concise bulleted summary of the review contract — scope, risk categories, test
+  expectations, rubric — and lets them add or amend. User additions are refined into
+  concrete checkable items (not pasted verbatim), the prompt body is rewritten to
+  match, and only the approved contract is dispatched. The pre-dispatch mutation hash
+  is captured after this step so it baselines the final contract. When the user does
+  not know what rules apply, the builder drafts a rubric from the change and the
+  matched floor category for the user to confirm or edit — the checklist obligation
+  never silently falls back to a user who invoked the audit precisely because they
+  lack that domain expertise.
 - **Rubric and strict-mode discoverability.** Both were previously opt-in-only —
   invisible unless you already knew the flag existed. Step 4 now asks about a domain
   checklist alongside the existing test-spec question, can write one from your answers

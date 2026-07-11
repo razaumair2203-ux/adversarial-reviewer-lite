@@ -164,6 +164,7 @@ The skill is best when you want repeatability. A manual second window is fine fo
 
 The user should see:
 
+- a concise bulleted summary of the review contract before dispatch, with a chance to add or amend what the reviewer is asked to check;
 - the raw reviewer output;
 - a builder assessment of each finding;
 - verification performed or still missing;

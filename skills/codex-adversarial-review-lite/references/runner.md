@@ -14,8 +14,7 @@ REVIEW_BACKEND: codex
 REVIEWER_MODEL: <e.g. gpt-5.5>
 REVIEWER_REASONING: low | medium | high | xhigh
 REVIEWER_SANDBOX: read-only | workspace-write | danger-full-access | inherit
-REVIEWER_APPROVAL_POLICY: on-request | never
-REVIEWER_APPROVALS_REVIEWER: auto_review | unset
+REVIEWER_APPROVAL_POLICY: never
 TMP_ROOT: <temp directory outside repo>
 PROMPT_BODY_PATH: <absolute path>
 RESULT_PATH: ${TMP_ROOT}/advreview-result-<REVIEW_ID>.json

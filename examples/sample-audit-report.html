@@ -99,8 +99,8 @@
 
     <section class="floor-gate">
       <h2>Human-Review Floor</h2>
-      <p>This change touches <strong>migrations/destructive-data</strong> (an unconditional delete on user profile rows). A reviewer verdict of APPROVED would not have been accepted here without this section — the user must look at the diff themselves.</p>
-      <p><strong>Outcome:</strong> <span class="badge decision">reviewed-ok — user inspected the diff and accepted it</span></p>
+      <p>This change touches <strong>migrations/destructive-data</strong> (an unconditional delete on user profile rows) — a floor category. The reviewer returned REVISE, so this audit already routes to the findings below and requires sign-off before any fix. The floor's extra gate applies on top of that: had the reviewer instead returned APPROVED, the audit would <em>not</em> have ended there — the user would still have to inspect this diff and reply <code>reviewed-ok</code> before completion. Approval is one input, never a bypass.</p>
+      <p><strong>Status:</strong> <span class="badge status-revise">REVISE — findings require sign-off (floor gate would also apply on any APPROVED verdict)</span></p>
     </section>
 
     <h2>Executive Summary</h2>

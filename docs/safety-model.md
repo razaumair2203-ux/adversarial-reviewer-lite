@@ -24,6 +24,7 @@ Codex Adversarial Review - Lite includes:
 - privacy notice before repository content is sent to the reviewer backend;
 - audit-first default flow for the first public release;
 - focused test specifications and test data passed into review when available;
+- a review-contract confirmation step: before dispatch, the builder shows the user a concise bulleted summary of what the reviewer will examine and lets the user add or amend it, so repo content is only sent under a contract the user approved;
 - reviewer permissions that forbid project-file edits;
 - approval policy controls for the reviewer backend;
 - pre/post Git status snapshots;
@@ -82,8 +83,7 @@ The public skill exposes:
 
 ```text
 approvals:auto_review
-approvals:user
 approvals:never
 ```
 
-`auto_review` is the default because it reduces the chance that the reviewer hangs inside a nested approval prompt that the user cannot see. Use `user` when you want to personally approve nested reviewer requests. Use `never` for stricter non-interactive runs where the reviewer should fail instead of asking.
+Both map to `-c approval_policy=never` under the hood, because `codex exec` is non-interactive — there is no runtime prompt a user could answer during a dispatch, so the reviewer must never wait on one. The sandbox flag (`-s`) is the actual control over what the reviewer can do. `auto_review` is the default; `never` is an explicit synonym for the same behavior. Interactive per-command approval is intentionally not offered, since it cannot function with the non-interactive runner.

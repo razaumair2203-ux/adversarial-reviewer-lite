@@ -41,7 +41,7 @@ Options:
 - `reviewer:<model>` - default `gpt-5.5`.
 - `reasoning:low|medium|high|xhigh` - default `xhigh`.
 - `sandbox:workspace-write|read-only|danger-full-access|inherit` - default Unix `workspace-write`, default Windows `danger-full-access`.
-- `approvals:user|auto_review|never` - default `auto_review`.
+- `approvals:auto_review|never` - default `auto_review`. Both map to `-c approval_policy=never` because `codex exec` is non-interactive; the sandbox flag is the real boundary. Interactive per-command approval (`approvals:user`) is not offered — there is no runtime prompt the user could answer during a `codex exec` dispatch.
 - `test-spec:<path>` - focused test expectations, scenarios, or validation commands to pass to the reviewer.
 - `test-data:<path>` - sample inputs, fixtures, edge cases, or regression data to pass to the reviewer.
 - `rubric:<path>` - domain checklist (markdown or plain text) injected into the reviewer prompt. The reviewer must report PASS/FAIL/UNVERIFIABLE per item in a `# Rubric Results` section. Any FAIL forces `VERDICT: REVISE`.
@@ -362,7 +362,7 @@ Parse user arguments:
 
 - `MODE`: `audit` or `selftest`. Must be one of these for v1 public use.
 - `AUDIT_MODE`: true only when `audit` is explicitly present.
-- `SELFTEST_MODE`: true only when `selftest` is explicitly present. When true, skip Steps 3-14 and run Step 0 instead.
+- `SELFTEST_MODE`: true only when `selftest` is explicitly present. When true, skip Steps 3-15 and run Step 0 instead.
 - `REVIEW_BACKEND`: default `codex`.
 - `REVIEWER_MODEL`: default `gpt-5.5`.
 - `MODEL_FALLBACK_CHAIN`: ordered list of models to try if `REVIEWER_MODEL` is unavailable. Default: `["gpt-5.5", "o3", "gpt-4.1", "gpt-4o"]`. When the user explicitly sets `reviewer:<model>`, that model is tried first, then the remaining chain in order. When no model is specified, the full default chain is used.
@@ -1156,8 +1156,7 @@ REVIEW_BACKEND: codex
 REVIEWER_MODEL: <model>
 REVIEWER_REASONING: <reasoning>
 REVIEWER_SANDBOX: <sandbox>
-REVIEWER_APPROVAL_POLICY: <on-request|never>
-REVIEWER_APPROVALS_REVIEWER: <auto_review|unset>
+REVIEWER_APPROVAL_POLICY: never
 TMP_ROOT: <temp directory outside repo>
 PROMPT_BODY_PATH: ${TMP_ROOT}/advreview-body-<id>.md
 RESULT_PATH: ${TMP_ROOT}/advreview-result-<id>.json

@@ -60,6 +60,15 @@
   [claude-adversarial-review-lite](https://github.com/razaumair2203-ux/claude-adversarial-review-lite)
   (Codex builds, Claude reviews). Both skills produce the same report regardless of
   which model built and which reviewed; only direction and transport differ.
+- Explicit detection of the trusted-directory refusal. Step 6 and ST-6 now distinguish
+  an *environmental block* (trusted-directory / sandbox / auth) from a genuine
+  *model-availability* failure and print the correct remedy instead of exhausting the
+  fallback chain with a misleading message.
+- `runner.md` R7 lists the `not inside a trusted directory` / `--skip-git-repo-check`
+  refusal as a `degraded_environmental` signal so the runner reports it as an
+  environment problem rather than inventing findings.
+- A troubleshooting-table entry for the "all models unavailable but auth is healthy"
+  symptom.
 
 ### Fixed
 - **Codex "Not inside a trusted directory" misdiagnosed as a model outage.**
@@ -76,17 +85,6 @@
   They now pass `--skip-git-repo-check`. The **real review dispatch** is unchanged and
   keeps full git-based mutation safety by running with `-C "${REPO_ROOT}"`
   (references/runner.md, Step R4).
-
-### Added
-- Explicit detection of the trusted-directory refusal. Step 6 and ST-6 now distinguish
-  an *environmental block* (trusted-directory / sandbox / auth) from a genuine
-  *model-availability* failure and print the correct remedy instead of exhausting the
-  fallback chain with a misleading message.
-- `runner.md` R7 lists the `not inside a trusted directory` / `--skip-git-repo-check`
-  refusal as a `degraded_environmental` signal so the runner reports it as an
-  environment problem rather than inventing findings.
-- A troubleshooting-table entry for the "all models unavailable but auth is healthy"
-  symptom.
 
 ### Notes
 - The floor/rubric additions were stress-tested before release: 42 executable

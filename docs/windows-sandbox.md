@@ -1,6 +1,6 @@
 ﻿# Windows Sandbox Notes
 
-Codex Adversarial Review - Lite v1 is Windows-first because many agentic coding tutorials assume Linux-style sandboxing, while many new users are working from Windows machines.
+Codex Adversarial Review - Lite runs on Windows, macOS, Linux, and WSL. This note focuses on Windows because many agentic coding tutorials assume Linux-style sandboxing while many new users are working from Windows machines, where that sandboxing is unavailable.
 
 ## The Problem
 
@@ -59,6 +59,6 @@ For sensitive repos:
 - avoid ignored secret files inside the repo;
 - use audit mode first;
 - provide focused test specs/test data so the reviewer can check verification gaps without widening scope;
-- prefer `approvals:never` or `approvals:user` if you want stricter control over reviewer commands;
+- rely on the sandbox flag (`-s`) for control over reviewer commands — it is the real boundary; `codex exec` runs non-interactively with `approval_policy=never`, so there is no per-command approval prompt to answer;
 - inspect the HTML report before accepting fixes;
 - revoke or rotate credentials if a secret was ever pasted into a prompt.

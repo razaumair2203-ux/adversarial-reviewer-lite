@@ -13,6 +13,12 @@ The change adds a save flow for user profile edits. The overall structure is cle
 - **Recommendation:** Wrap delete + insert in a transaction, or update the existing row in place.
 - **Verification needed:** Confirm the database client supports transactions in this code path and add a failing test for insert failure after delete.
 
+# Scorecard
+
+- **Reviewed:** 1 items
+- **Passing:** 0
+- **Needs revision:** 1 (1 high)
+
 # Verdict
 
-VERDICT: REVISE
+VERDICT: REVISE — 0 passing, 1 need revision (1 high)

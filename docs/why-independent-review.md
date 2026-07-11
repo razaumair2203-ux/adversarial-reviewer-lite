@@ -53,6 +53,8 @@ Useful starting points, with the practical takeaway for this skill:
 - A 2025 LLM code-review evaluation found that review performance depends on context and task type. This supports passing problem descriptions, focused test specs, and expected behavior rather than asking for generic review: https://arxiv.org/abs/2505.20206
 - A 2026 vision paper on agentic code review argues for specialized agents with human-controlled quality gates, which matches this skill's report-before-code and sign-off posture: https://arxiv.org/abs/2605.17548
 
+Two frontier models can still share a training-distribution blind spot — neither reliably knowing an obscure regulatory deadline or evidentiary rule, for instance — no matter how independent their architectures are. Independent review narrows correlated failure; it does not eliminate blind spots the reviewer never had information about in the first place. This is why `rubric:<path>` exists: a named checklist converts "does this look fine to a smart generalist" into "does this satisfy these specific rules," which is checkable even when neither model would have raised the issue unprompted.
+
 The practical takeaway is modest:
 
 ```text

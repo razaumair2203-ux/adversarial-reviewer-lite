@@ -32,6 +32,9 @@ Codex Adversarial Review - Lite includes:
 - explicit accept/reject/re-scope/defer decisions for reviewer findings;
 - empirical verification for tool, CLI, package, config, and API claims when practical;
 - a structural-change gate for workflow, sandbox, data, and architecture changes;
+- a human-review floor: an APPROVED verdict does not end the audit when the diff touches auth/permissions, money/billing, migrations/destructive data, secrets, or regulatory-tagged paths — the user must look at the diff and confirm before the audit completes;
+- optional domain rubrics (`rubric:<path>`): a named checklist the reviewer must answer PASS/FAIL/UNVERIFIABLE against with evidence, so review quality does not depend on the model happening to know a specific rule;
+- strict mode: one flag that requires a rubric, applies the human-review floor to every change regardless of category, and disables autonomous fixing, for repos where the safe configuration should be the default rather than something to remember;
 - audit-mode sign-off before fixes;
 - optional HTML report with decisions and fix log;
 - report-before-code discipline: the builder presents validated findings and the HTML option before applying fixes.
@@ -48,6 +51,8 @@ Codex Adversarial Review - Lite does not:
 - guarantee the reviewer model supports the requested model name;
 - install missing tools without explicit user approval. The skill can detect and install missing prerequisites, but only after showing the full list and receiving a clear yes from the user. It never installs silently.
 - guarantee hash-based mutation detection when temp file paths or shell variables are misconfigured. On Windows, Git Bash `/tmp` and the platform-native temp path can diverge between tools. If hash files are empty due to variable expansion failure or path mismatch, the pre/post mutation comparison produces a false-negative (no diff detected). The skill mitigates this with non-empty hash verification steps, but the underlying risk exists when Claude Code's Bash tool calls do not correctly redeclare variables. See "Claude Code Runtime Notes" in SKILL.md.
+- guarantee the human-review floor catches every high-consequence change automatically. Floor-category detection is a grep-based heuristic over file paths and diff content, not a semantic understanding of the change; it can miss a floor category under an unfamiliar name. The builder is instructed to apply judgment on top of the heuristic, and you can tag repo-specific paths in `.advreview-floor`, but the floor is a safety net, not a proof that nothing risky slipped through unflagged.
+- verify that a supplied rubric is itself correct or complete. A rubric only checks what it names; a badly written or incomplete checklist gives false confidence in exactly the shape of "checked the boxes, missed the point" that rubrics exist to avoid for the model's own blind spots.
 
 ## Recommended Use
 

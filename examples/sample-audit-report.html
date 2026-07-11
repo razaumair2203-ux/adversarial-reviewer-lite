@@ -50,6 +50,25 @@
       color: #1e3a8a;
       background: #dbeafe;
     }
+    .pass {
+      color: #14532d;
+      background: #dcfce7;
+    }
+    .fail {
+      color: #7c2d12;
+      background: #ffedd5;
+    }
+    .unverifiable {
+      color: #713f12;
+      background: #fef3c7;
+    }
+    .floor-gate {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 18px 0;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -74,7 +93,14 @@
       <p><strong>Reasoning:</strong> xhigh</p>
       <p><strong>Sandbox:</strong> danger-full-access</p>
       <p><strong>Approvals:</strong> auto_review</p>
+      <p><strong>Strict mode:</strong> off</p>
       <p><strong>Generated:</strong> 2026-05-29T00:00:00Z</p>
+    </section>
+
+    <section class="floor-gate">
+      <h2>Human-Review Floor</h2>
+      <p>This change touches <strong>migrations/destructive-data</strong> (an unconditional delete on user profile rows). A reviewer verdict of APPROVED would not have been accepted here without this section — the user must look at the diff themselves.</p>
+      <p><strong>Outcome:</strong> <span class="badge decision">reviewed-ok — user inspected the diff and accepted it</span></p>
     </section>
 
     <h2>Executive Summary</h2>
@@ -98,6 +124,18 @@
       <p><strong>Decision:</strong> <span class="badge decision">pending user sign-off</span></p>
     </section>
 
+    <section class="finding">
+      <h2>Rubric Results</h2>
+      <p>Checklist supplied with <code>rubric:docs/data-integrity-checklist.md</code>.</p>
+      <table>
+        <tr><th>Item</th><th>Result</th><th>Evidence</th></tr>
+        <tr><td>All destructive writes are wrapped in a transaction or reversible operation</td><td><span class="badge fail">FAIL</span></td><td>Delete and insert in <code>save.ts:42-61</code> run as two unguarded statements.</td></tr>
+        <tr><td>Existing regression tests cover partial-failure rollback</td><td><span class="badge unverifiable">UNVERIFIABLE</span></td><td>No test file for this path was included in the reviewed scope.</td></tr>
+        <tr><td>API response shape is unchanged for existing callers</td><td><span class="badge pass">PASS</span></td><td>Return type in <code>save.ts:61</code> matches the pre-change signature.</td></tr>
+      </table>
+      <p>Any FAIL forces <code>VERDICT: REVISE</code> regardless of the reviewer's overall impression — one FAIL is present here, consistent with the REVISE verdict below.</p>
+    </section>
+
     <section class="log">
       <h2>Decision & Fix Log</h2>
       <p><em>No decisions recorded in this sample report.</em></p>
@@ -107,6 +145,8 @@
       <h2>Glossary</h2>
       <p><strong>Data integrity:</strong> The application keeps user data correct and recoverable even when part of an operation fails.</p>
       <p><strong>Transaction:</strong> A database operation group that succeeds together or rolls back together.</p>
+      <p><strong>Human-review floor:</strong> A category of change (auth, billing, migrations/destructive data, secrets, regulatory) where a reviewer APPROVED verdict alone is not sufficient to end the audit — the user must also look at the diff.</p>
+      <p><strong>Rubric:</strong> A named checklist passed to the reviewer with <code>rubric:&lt;path&gt;</code>. Every item gets a PASS, FAIL, or UNVERIFIABLE result with evidence; any FAIL forces a REVISE verdict.</p>
     </section>
   </main>
 </body>

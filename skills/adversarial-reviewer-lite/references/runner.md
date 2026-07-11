@@ -20,7 +20,10 @@ TMP_ROOT: <temp directory outside repo>
 PROMPT_BODY_PATH: <absolute path>
 RESULT_PATH: ${TMP_ROOT}/advreview-result-<REVIEW_ID>.json
 DIRTY_FILE_LIST_PATH: ${TMP_ROOT}/advreview-dirty-files-<REVIEW_ID>.txt
+RUBRIC_PRESENT: true | false
 ```
+
+`RUBRIC_PRESENT` is optional; treat a missing value as `false`. When `true`, the prompt body already contains the rubric and the review must contain a `# Rubric Results` section (see R6).
 
 If `REVIEW_BACKEND` is not `codex`, write an `input_error` result.
 
@@ -39,10 +42,14 @@ Write this JSON to `RESULT_PATH`:
   "triage": {
     "finding_count": 0,
     "max_severity": "none",
-    "needs_builder_judgment": false
+    "needs_builder_judgment": false,
+    "rubric_present": false,
+    "rubric_fail_count": 0
   }
 }
 ```
+
+`rubric_present` mirrors the `RUBRIC_PRESENT` input. `rubric_fail_count` is the number of `- [FAIL]` lines in the review; always `0` when no rubric was passed.
 
 Allowed values:
 
@@ -143,10 +150,14 @@ If it fails, write:
   "triage": {
     "finding_count": 0,
     "max_severity": "none",
-    "needs_builder_judgment": false
+    "needs_builder_judgment": false,
+    "rubric_present": false,
+    "rubric_fail_count": 0
   }
 }
 ```
+
+(Set `rubric_present` to the actual `RUBRIC_PRESENT` input; `rubric_fail_count` stays `0` because no review ran.)
 
 Main will surface the sandbox diagnostic and abort or retry with an explicitly chosen safer/fallback mode. The runner must not silently switch to `danger-full-access`.
 
@@ -210,7 +221,18 @@ The review file must:
 - be non-empty;
 - contain exactly one final verdict line starting with `VERDICT: APPROVED` or `VERDICT: REVISE`;
 - when the verdict is `REVISE`, the verdict line should include a scorecard summary (e.g. `VERDICT: REVISE — 8 passing, 2 need revision (1 high, 1 medium)`);
-- contain at least one `[severity: critical|high|medium]` tag when verdict is `REVISE`, unless the body is classified as `degraded_environmental`.
+- contain at least one `[severity: critical|high|medium]` tag when verdict is `REVISE`, unless the body is classified as `degraded_environmental`;
+- when `RUBRIC_PRESENT=true`, contain a `# Rubric Results` section with at least one result line matching `^- \[(PASS|FAIL|UNVERIFIABLE)\]`.
+
+Rubric check when `RUBRIC_PRESENT=true`:
+
+```bash
+grep -n -E '^#+ Rubric Results' "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md"
+grep -c -E '^- \[(PASS|FAIL|UNVERIFIABLE)\]' "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md"
+grep -c -E '^- \[FAIL\]' "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" || true
+```
+
+A missing rubric section counts as a validation failure for the R5 retry policy (the reviewer ignored a required output section). If the retry also omits it, do not write `launch_failure` — the review may still be useful; classify it `degraded_content` in R7 so main treats it as not verified.
 
 Recommended checks:
 
@@ -246,7 +268,10 @@ Classify as `degraded_content` when:
 - the review has verdict markers but no actionable findings;
 - findings are generic advice not tied to files, sections, commands, or plan details;
 - severity tags exist but the body does not explain concrete impact;
-- the reviewer mostly praises or summarizes rather than audits.
+- the reviewer mostly praises or summarizes rather than audits;
+- `RUBRIC_PRESENT=true` but the review has no `# Rubric Results` section or no per-item result lines (the reviewer ignored the rubric, so the review is not checkable against it);
+- `RUBRIC_PRESENT=true` with `VERDICT: APPROVED` and zero `- [PASS]` lines — an approval where nothing on the checklist was actually verified;
+- the review is internally inconsistent: a `- [FAIL]` rubric line together with `VERDICT: APPROVED`, or a `REVISE` verdict whose scorecard claims zero items need revision.
 
 Classify as `valid` when:
 
@@ -269,11 +294,19 @@ else
 fi
 ```
 
+When `RUBRIC_PRESENT=true`, also count rubric results:
+
+```bash
+grep -c -E '^- \[FAIL\]' "${TMP_ROOT}/advreview-review-${REVIEW_ID}.md" || true
+```
+
 Set:
 
 - `finding_count`
 - `max_severity`: `critical`, `high`, `medium`, or `none`
 - `needs_builder_judgment`: true for `REVISE`, `degraded_content`, or `unknown`
+- `rubric_present`: mirror of the `RUBRIC_PRESENT` input
+- `rubric_fail_count`: number of `- [FAIL]` lines; `0` when no rubric was passed
 
 `degraded_environmental` always needs main-thread handling before builder fixes.
 

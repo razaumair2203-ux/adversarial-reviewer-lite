@@ -3,7 +3,7 @@ name: adversarial-reviewer-lite
 description: Adversarial Reviewer Lite: user-invoked audit workflow for Claude Code users who want Codex CLI to independently review AI-generated code, plans, test expectations, and scope before fixes are applied. Cross-platform (Windows, macOS, Linux, WSL). Use only when the user explicitly invokes audit or selftest.
 user_invocable: true
 disable-model-invocation: true
-argument-hint: "audit [path] [reviewer:<model>] [test-spec:<path>] [test-data:<path>] | selftest"
+argument-hint: "audit [path] [reviewer:<model>] [test-spec:<path>] [test-data:<path>] [rubric:<path>] [strict] | selftest"
 ---
 
 # Adversarial Reviewer Lite
@@ -33,6 +33,8 @@ Advanced scope hints:
 - `/adversarial-reviewer-lite audit <file-path>` - audit a specific file or plan.
 - `/adversarial-reviewer-lite audit test-spec:<path>` - audit with focused test expectations.
 - `/adversarial-reviewer-lite audit test-data:<path>` - audit with focused sample data or fixtures.
+- `/adversarial-reviewer-lite audit rubric:<path>` - audit against a domain checklist; the reviewer must report pass/fail per checklist item.
+- `/adversarial-reviewer-lite audit strict rubric:<path>` - high-consequence mode: requires a rubric, floor-gates every change for human review, disables autonomous fixing.
 
 Options:
 
@@ -42,6 +44,8 @@ Options:
 - `approvals:user|auto_review|never` - default `auto_review`.
 - `test-spec:<path>` - focused test expectations, scenarios, or validation commands to pass to the reviewer.
 - `test-data:<path>` - sample inputs, fixtures, edge cases, or regression data to pass to the reviewer.
+- `rubric:<path>` - domain checklist (markdown or plain text) injected into the reviewer prompt. The reviewer must report PASS/FAIL/UNVERIFIABLE per item in a `# Rubric Results` section. Any FAIL forces `VERDICT: REVISE`.
+- `strict` - high-consequence mode. Requires `rubric:<path>` (stops with an error if missing), applies the human-review floor to every change regardless of category, and disables autonomous fixing even if the user previously asked for it.
 - `backend:codex` - default and only implemented backend in v1.
 
 Convenience aliases:
@@ -50,6 +54,7 @@ Convenience aliases:
 - Bare `low`, `medium`, `high`, `xhigh` set reasoning.
 - Bare `audit` sets audit mode.
 - Bare `selftest` sets selftest mode.
+- Bare `strict` sets strict mode (only meaningful with `audit`).
 - If neither `audit` nor `selftest` is present, stop and ask the user to invoke `/adversarial-reviewer-lite audit ...` or `/adversarial-reviewer-lite selftest`.
 
 ## Claude Code Runtime Notes
@@ -366,6 +371,8 @@ Parse user arguments:
 - `REVIEWER_APPROVAL_MODE`: default `auto_review`.
 - `TEST_SPEC_PATHS`: zero or more files from `test-spec:<path>`.
 - `TEST_DATA_PATHS`: zero or more files from `test-data:<path>`.
+- `RUBRIC_PATHS`: zero or more files from `rubric:<path>`. In audit mode, each must exist and be non-empty; stop with a clear message if not.
+- `STRICT_MODE`: true only when `strict` is explicitly present. Default false.
 - `OPERATOR_LANGUAGE`: inferred from recent user messages; default English.
 
 Map approval mode for Codex backend:
@@ -386,6 +393,23 @@ If `REVIEW_BACKEND` is anything other than `codex`, stop with:
 ```text
 Adversarial Reviewer Lite v1 only implements backend:codex. Other backends are planned but not available yet.
 ```
+
+`strict` and `rubric:<path>` apply to audit mode only. In selftest mode, ignore them with a one-line note ("strict/rubric options are ignored during selftest") and continue — the selftest must never be blocked by audit-only options.
+
+If `AUDIT_MODE` is true, `STRICT_MODE` is true, and `RUBRIC_PATHS` is empty, stop with:
+
+```text
+Strict mode requires a rubric. Provide a domain checklist:
+
+  /adversarial-reviewer-lite audit strict rubric:<path-to-checklist>
+
+Strict mode exists for high-consequence repos where the review must be checkable against named rules, not general model judgment. Without a rubric, strict mode would only add friction without adding accuracy.
+```
+
+When `STRICT_MODE` is true, apply these overrides for the rest of the audit:
+
+- Every audited change is floor-gated in Step 11 (the Step 11 gate triggers on `STRICT_MODE` directly), not only floor-category changes.
+- Autonomous fixing is disabled: any prior user instruction to "fix everything it finds" is void for this audit. Every fix requires the Step 12 sign-off after the findings have been presented, and the Step 13 autonomous-fix exception for structural changes does not apply.
 
 If the user did not explicitly invoke `audit` or `selftest`, stop with:
 
@@ -712,6 +736,32 @@ Use the user's answers to build a focused test expectation summary. Present the 
 
 When collecting content, avoid ignored files unless the user explicitly asks for them. Warn if the requested scope appears to include secrets, credentials, or private customer data.
 
+### Human-Review Floor Detection
+
+Classify the change against **floor categories** — areas where even a reviewer `APPROVED` verdict must not bypass human review: auth/permissions, money/billing, migrations/destructive data operations, secrets, and regulatory-tagged paths. A clean second-model approval on these changes must produce *more* human scrutiny, not less.
+
+Run two cheap signals against **the same diff used for review scope**. If scope came from the working tree, use the commands below as written; if scope came from the branch-diff fallback (everything already committed — see the code-changes rules above), replace both diff sources with the same branch diff, e.g. `git -C "${REPO_ROOT}" diff origin/main...HEAD`. Floor detection over a different diff than the one being reviewed is a hole, not a heuristic. This step needs no temp files — record the matches in conversation state as `FLOOR_CATEGORIES`.
+
+```bash
+# Signal 1 — path-based: changed file paths that suggest a floor category
+{ git -C "${REPO_ROOT}" diff --name-only; git -C "${REPO_ROOT}" diff --cached --name-only; } | sort -u | \
+  grep -Ei 'auth|login|session|permission|rbac|acl|oauth|token|sso|billing|payment|invoice|pricing|stripe|subscription|migration|schema|secret|credential|\.env|vault|compliance|regulatory|eligib' \
+  || echo "no path-based floor matches"
+
+# Signal 2 — content-based: destructive data operations added by the diff
+# (grep -v drops '+++ b/<file>' diff headers; rm pattern catches -rf/-fr/-r -f orderings)
+{ git -C "${REPO_ROOT}" diff -U0; git -C "${REPO_ROOT}" diff --cached -U0; } | \
+  grep -v '^+++' | \
+  grep -Ei '^\+.*(DROP[[:space:]]+(TABLE|COLUMN|DATABASE)|TRUNCATE|DELETE[[:space:]]+FROM|ALTER[[:space:]]+TABLE|rm[[:space:]]+(-[a-zA-Z]+[[:space:]]+)*-[a-zA-Z]*[rf]|destroy_all|\.delete\()' \
+  || echo "no content-based floor matches"
+```
+
+If `${REPO_ROOT}/.advreview-floor` exists, treat each non-empty line not starting with `#` as an additional extended-regex pattern to match against changed file paths. This lets high-consequence repos tag domain paths (e.g. `eligibility/`, `msha-rules/`) without editing the skill.
+
+Map the matches to human-readable labels and set `FLOOR_CATEGORIES` (e.g. `auth/permissions`, `money/billing`, `migrations/destructive-data`, `secrets`, `regulatory`). The grep is a heuristic, not the decision-maker: the builder must also use judgment — if the diff plainly changes eligibility rules, money math, permission checks, or destructive data paths under names the patterns miss (including multi-line SQL such as `DELETE` split from its `FROM`), add the category anyway. A false positive costs one extra human look; a false negative is exactly the failure this floor exists to prevent.
+
+If no signal matches and the builder sees no floor-category content, set `FLOOR_CATEGORIES` empty — the audit proceeds exactly as before.
+
 ## Step 5: Mutation Snapshot Before Review
 
 Create a unique `REVIEW_ID` using this format:
@@ -921,6 +971,22 @@ When auditing test specs/test data, ask for:
 - validation commands that should be run before claiming success;
 - tests that are too broad, too weak, or outside the user's scope.
 
+When a rubric is provided (`RUBRIC_PATHS` non-empty), append a rubric block to the prompt. A rubric converts "does this look fine to a smart generalist" into "does this satisfy these named rules" — it is how domain requirements the model may not reliably know (regulatory deadlines, eligibility criteria, legal evidentiary rules) become checkable:
+
+```text
+# Rubric
+
+The following domain checklist is authoritative for this review. For each item:
+- report PASS, FAIL, or UNVERIFIABLE;
+- give one line of evidence (file, line, command output, or reasoning);
+- any FAIL must also appear as a finding with a severity tag;
+- any FAIL forces VERDICT: REVISE, regardless of your overall impression.
+
+Do not skip items. Do not reinterpret items — if an item is ambiguous or cannot be checked from the provided scope, mark it UNVERIFIABLE and say why. UNVERIFIABLE is an honest answer; a guessed PASS is not.
+
+<contents of each RUBRIC_PATHS file, in order>
+```
+
 Require output:
 
 ```text
@@ -954,6 +1020,18 @@ VERDICT: REVISE — <number> passing, <number> need revision (<severity breakdow
 ```
 
 The final line must be exactly one verdict line starting with `VERDICT: APPROVED` or `VERDICT: REVISE`. When the verdict is `REVISE`, the verdict line must include the scorecard summary so the user sees passing vs. revision counts at a glance without reading the full report. When the verdict is `APPROVED`, the scorecard section is still required above the verdict line.
+
+When a rubric is provided, the required output must additionally contain a `# Rubric Results` section between `# Findings` and `# Scorecard`, one line per rubric item:
+
+```text
+# Rubric Results
+
+- [PASS] <item> — <evidence>
+- [FAIL] <item> — <evidence>
+- [UNVERIFIABLE] <item> — <why it could not be checked>
+```
+
+Every rubric item must appear exactly once. Any `[FAIL]` line makes `VERDICT: APPROVED` invalid.
 
 Append reviewer permissions:
 
@@ -1035,6 +1113,7 @@ TMP_ROOT: <temp directory outside repo>
 PROMPT_BODY_PATH: ${TMP_ROOT}/advreview-body-<id>.md
 RESULT_PATH: ${TMP_ROOT}/advreview-result-<id>.json
 DIRTY_FILE_LIST_PATH: ${TMP_ROOT}/advreview-dirty-files-<id>.txt
+RUBRIC_PRESENT: <true when RUBRIC_PATHS is non-empty, else false>
 ```
 
 The subagent reads `runner.md`, calls Codex CLI, validates the review file, classifies review quality, and writes a JSON result.
@@ -1115,7 +1194,34 @@ Then provide a short operator summary in `OPERATOR_LANGUAGE`:
 - `Builder should do next`: audit sign-off, verify findings, apply accepted fixes, or stop.
 - `Trust note`: reviewer output is not automatically trusted.
 
-If verdict is `APPROVED`, continue to the terminal summary and stop.
+When a rubric was provided, check rubric coverage before acting on any verdict — the runner can only verify that a `# Rubric Results` section exists; only the builder knows the rubric's contents:
+
+- Every rubric item must have exactly one result line. Treat missing items as `[UNVERIFIABLE]` and tell the user which items the reviewer skipped.
+- If the reviewer skipped more than half the items, treat the review as `degraded_content`: not verified, no fixes, recommend re-running.
+- `VERDICT: APPROVED` is only acceptable when there are zero `[FAIL]` lines **and at least one `[PASS]`**. An approval where every item is `[UNVERIFIABLE]` verified nothing — treat it as `degraded_content`, not as approval.
+
+If verdict is `APPROVED` and `FLOOR_CATEGORIES` is empty and `STRICT_MODE` is false, continue to the terminal summary and stop.
+
+If verdict is `APPROVED` but `FLOOR_CATEGORIES` is non-empty or `STRICT_MODE` is true, the audit is **floor-gated**: approval from a second model is not a substitute for human review of auth, money, destructive data, secrets, or regulatory changes. Present in `OPERATOR_LANGUAGE`:
+
+```text
+## Human-Review Floor
+
+The reviewer APPROVED this change, but it touches: <FLOOR_CATEGORIES, or "all changes (strict mode)">.
+A clean model verdict does not clear these categories — a human must look at the diff.
+
+Changed files:
+<changed file list with diff stat>
+
+Reply with one of:
+- reviewed-ok — you inspected the diff and accept it
+- concern: <what looks wrong> — I will treat it as a REVISE finding and evaluate it
+```
+
+Show the full diff inline when it is small (roughly under 200 lines); for larger changes show the diff stat and offer per-file diffs. Do not continue to the terminal summary until the user answers.
+
+- On `reviewed-ok`, continue to the terminal summary and record `Floor gate: floor-gated (<categories>) — reviewed by user`.
+- On a concern, treat it as a `REVISE`-path finding: enter Step 12 with the user's concern as finding #1, evaluate it with the Step 13 matrix, and require sign-off as usual.
 
 If verdict is `REVISE` and audit mode is active, continue to audit report.
 
@@ -1152,6 +1258,8 @@ After presenting each finding with the builder's recommendation, collect user de
 
 Do not fix anything until the user explicitly approves all finding decisions. Audit mode is a report-and-signoff workflow first, a code-change workflow second.
 
+In strict mode, fixes are only applied after the user has seen the full findings report (or decision table) in this audit and explicitly signed off. A pre-authorization given before the audit ran — "fix whatever it finds", "autonomous mode" — is void while strict is active; restate the findings and ask for sign-off.
+
 Before generating an HTML artifact, ask:
 
 ```text
@@ -1164,7 +1272,9 @@ Canonical HTML report structure:
 
 - Use `references/sample-audit-report.html` as the installed canonical template. In the source repository, `examples/sample-audit-report.html` is the public preview copy.
 - Keep all CSS inline.
-- Include metadata: repo, mode, reviewer backend, reviewer model, reasoning, sandbox, approval mode, timestamp.
+- Include metadata: repo, mode, reviewer backend, reviewer model, reasoning, sandbox, approval mode, strict mode (on/off), timestamp.
+- When a rubric was provided, include a rubric-results table: each item with PASS/FAIL/UNVERIFIABLE, evidence, and items the reviewer skipped.
+- When the audit was floor-gated, include the floor-gate status: matched categories and the user's review outcome.
 - Include a top-level status badge: approved, revise, not verified, or failed.
 - Include the scorecard: items reviewed, passing, needs revision with severity breakdown.
 - Include severity badges and decision badges.
@@ -1245,6 +1355,7 @@ Structural gate:
 
 - If a structural fix is needed and the operator is reachable, pause once with a short explanation before applying it.
 - If the user already explicitly requested autonomous fixing of all issues, proceed but record that a structural change was made.
+- In strict mode, the previous exception does not apply: pause for every structural fix even when the user requested autonomous fixing.
 - Never hide structural changes inside a generic "minor fix" summary.
 
 ## Step 14: Terminal Operator Summary
@@ -1257,6 +1368,8 @@ Required fields:
 - `What changed`: files or sections changed by the builder, or "nothing changed".
 - `Reviewer findings`: accepted, rejected, re-scoped, deferred.
 - `Verification`: commands run and results, or why not run.
+- `Floor gate`: not applicable, or `floor-gated (<categories>)` with the user's review outcome (reviewed-ok / concern raised / pending).
+- `Rubric`: not provided, or `<n> PASS / <n> FAIL / <n> UNVERIFIABLE`.
 - `Structural changes`: list any structural changes or say none.
 - `Remaining risks`: concise, honest list.
 - `Next step`: one practical action for the user.
@@ -1294,6 +1407,9 @@ On launch failure, infrastructure failure, or mutation-detected abort, leave tem
 - Show reviewer output verbatim before fixes.
 - Reviewer findings are suggestions to verify, not commands to obey.
 - Audit mode requires user sign-off before fixes.
+- An `APPROVED` verdict on floor-category changes (auth/permissions, money/billing, migrations/destructive data, secrets, regulatory paths) still requires human diff review before the audit is complete. Approval is not a bypass; it is one input.
+- Any rubric `[FAIL]` forces `VERDICT: REVISE`. An `APPROVED` verdict alongside a `[FAIL]` line is inconsistent and must be treated as `degraded_content`.
+- Strict mode requires a rubric, floor-gates every change, and disables autonomous fixing regardless of prior instructions.
 - Audit mode must present the validated report and HTML-report option before touching code.
 - Test specs and test data should be passed to the reviewer when available, exhaustive but focused on the requested scope.
 - Tool-mechanic findings need empirical verification when practical.

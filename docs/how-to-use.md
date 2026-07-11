@@ -118,6 +118,20 @@ With both:
 
 Keep the test bundle exhaustive for the requested change but focused. Include expected behavior, known edge cases, validation commands, fixtures, and scenarios that must remain out of scope.
 
+With a domain rubric (the reviewer reports PASS/FAIL per checklist item):
+
+```text
+/adversarial-reviewer-lite audit rubric:docs/compliance-checklist.md
+```
+
+Strict mode for high-consequence repos (requires a rubric, floor-gates every change for human review, disables autonomous fixing):
+
+```text
+/adversarial-reviewer-lite audit strict rubric:docs/compliance-checklist.md
+```
+
+Note: even without strict mode, an `APPROVED` verdict on changes that touch auth/permissions, money/billing, migrations/destructive data, secrets, or regulatory-tagged paths is floor-gated — the skill asks you to review the diff yourself before the audit completes. A second model's approval is one input, not a bypass. You can tag repo-specific floor paths in a `.advreview-floor` file (one regex pattern per line) at the repo root.
+
 ## When To Run It
 
 Run the audit after Claude Code:

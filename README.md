@@ -199,6 +199,18 @@ Audit with edge-case fixtures:
 /adversarial-reviewer-lite audit test-spec:docs/change-tests.md test-data:fixtures/change-cases.json
 ```
 
+Audit against a domain checklist (reviewer reports PASS/FAIL per item):
+
+```text
+/adversarial-reviewer-lite audit rubric:docs/compliance-checklist.md
+```
+
+Strict mode for high-consequence repos:
+
+```text
+/adversarial-reviewer-lite audit strict rubric:docs/compliance-checklist.md
+```
+
 If your account cannot use the default reviewer model:
 
 ```text
@@ -392,6 +404,16 @@ Adversarial Reviewer Lite deliberately does not trust either agent blindly.
 
 This is the main difference between a useful review workflow and a dangerous "AI told AI to change code" workflow.
 
+## Human-Review Floor, Rubrics, And Strict Mode
+
+Three additions for high-consequence work:
+
+**Human-review floor.** An `APPROVED` verdict is not a terminal state when the change touches auth/permissions, money/billing, migrations/destructive data operations, secrets, or regulatory-tagged paths. On these changes the skill shows you the diff and asks for explicit confirmation before the audit completes. The reasoning: a clean second-model approval on a billing change should produce *more* human scrutiny, not less — two frontier models can share the same training-distribution blind spot. Tag repo-specific floor paths in an optional `.advreview-floor` file (one extended-regex pattern per line) at the repo root.
+
+**Rubrics.** Pass `rubric:<path>` to inject a domain checklist into the reviewer prompt. The reviewer must report `PASS` / `FAIL` / `UNVERIFIABLE` per item with evidence, in a `# Rubric Results` section. Any `FAIL` forces `VERDICT: REVISE`. This converts "does this look fine to a smart generalist" into "does this satisfy these named rules" — which is where correctness actually lives in regulated domains the model may not reliably know.
+
+**Strict mode.** Pass `strict` to bundle the safe configuration: a rubric is required (the audit stops without one), every change is floor-gated regardless of category, and autonomous fixing is disabled even if previously requested. Set it as the habit on legally-consequential repos; skip it on forgiving product repos and nothing changes.
+
 ## Comparison
 
 | Approach | Good For | Main Gap |
@@ -482,6 +504,9 @@ For a fuller table, see [docs/troubleshooting.md](docs/troubleshooting.md).
 | Sandbox (no bwrap — Windows, some macOS) | `danger-full-access` with warning |
 | Approval mode | `auto_review` |
 | Recommended mode | `audit` |
+| Rubric | none (optional `rubric:<path>`) |
+| Strict mode | off (optional `strict`, requires a rubric) |
+| Human-review floor | on for floor categories (auth, billing, migrations, secrets, regulatory) |
 | Builder | Claude Code |
 
 Future versions can generalize to other builders/reviewers. The first release is deliberately focused on Claude Code plus Codex CLI.

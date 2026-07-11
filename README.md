@@ -414,6 +414,10 @@ Three additions for high-consequence work:
 
 **Strict mode.** Pass `strict` to bundle the safe configuration: a rubric is required (the audit stops without one), every change is floor-gated regardless of category, and autonomous fixing is disabled even if previously requested. Set it as the habit on legally-consequential repos; skip it on forgiving product repos and nothing changes.
 
+## Sibling Repo
+
+[Claude Adversarial Reviewer](https://github.com/razaumair2203-ux/claude-adversarial-reviewer) is the mirror of this skill with the direction reversed: there Codex builds and Claude reviews (through schema-constrained JSON); here Claude Code builds and Codex reviews (through the markdown verdict contract). The two are deliberately kept in lockstep on everything the user experiences — the same policy layer (human-review floor, rubrics, strict mode, `.advreview-floor` tagging) and the same reporting procedure (finding evaluation, audit report, HTML report structure, terminal operator summary). Only the builder/reviewer direction and the transport differ.
+
 ## Comparison
 
 | Approach | Good For | Main Gap |

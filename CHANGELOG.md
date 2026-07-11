@@ -27,6 +27,12 @@
   (`FAIL` rubric line with `VERDICT: APPROVED`; `REVISE` with a zero-revision scorecard)
   as `degraded_content` instead of passing them through as valid.
 - Terminal summary (Step 14) gains `Floor gate` and `Rubric` fields.
+- **Sibling parity.** The floor/rubric/strict policy layer and the reporting procedure
+  (finding evaluation, audit report, HTML structure, terminal summary fields) are now
+  mirrored verbatim in the reversed sibling repo
+  [claude-adversarial-reviewer](https://github.com/razaumair2203-ux/claude-adversarial-reviewer)
+  (Codex builds, Claude reviews). Both skills produce the same report regardless of
+  which model built and which reviewed; only direction and transport differ.
 
 ### Fixed
 - **Codex "Not inside a trusted directory" misdiagnosed as a model outage.**
